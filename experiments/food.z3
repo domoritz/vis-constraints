@@ -26,10 +26,10 @@
 (assert (>= mul4 0))
 
 ; we have to spend exactly the total amount
-(assert (= (+ (+ (* mul1 fruit) (* mul2 fries)) (+ (* mul3 salad) (* mul4 wings))) total))
+(assert (= (+ (* mul1 fruit) (* mul2 fries) (* mul3 salad) (* mul4 wings)) total))
 
 ; maximize the number of items
-(maximize (+ (+ mul1 mul2) (+ mul3 mul4)))
+(maximize (+ mul1 mul2 mul3 mul4))
 
 (check-sat)
 
