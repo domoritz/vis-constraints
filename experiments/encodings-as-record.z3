@@ -15,19 +15,20 @@
 )))
 
 (declare-datatypes () ((Encoding
-    (mk-enc (channel Channel) (type FieldType) (agg AggFunc))
+    (mk-enc (chan Channel) (type FieldType) (agg AggFunc))
 )))
 
 ; I'm trying to write a function to get the channel from an encoding
-;(define-fun channel (e Encoding) Channel
-;)
+(define-fun channel ((e Encoding)) Channel
+  (chan e)
+)
 
 (define-sort Set (T) (Array T Bool))
 
 (declare-const mark Marktype)
 (declare-const encodings (Set Encoding))
 
-;(assert (exists ((e Encoding) (= (channel e) X))))
+(assert (exists ((e Encoding)) (= (chan e) X)))
 
 (check-sat)
 (get-model)
