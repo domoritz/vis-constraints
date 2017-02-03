@@ -67,3 +67,4 @@
 ;
 ; maybe we can ask Alan about this
 (get-model)
+(get-value ((channel N1)))
