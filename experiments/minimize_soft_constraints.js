@@ -6,17 +6,16 @@ function ite_from_dict(getValueExpr, dict, lastElseValue = 10000){
   /*
    *  Recurse through dict
    * */
-  let helper = ([head, ...tail]) => {
+  const helper = ([head, ...tail]) => {
     if (head === undefined)
       return `${lastElseValue}`;
     else {
-      let key = head[0], value = head[1];
+      const [key, value] = head;
 
       return `(ite (= ${getValueExpr} ${key} )
                 ${value}
                 ${helper(tail)}
-              )
-              `;
+              )`;
     }
   };
 
@@ -49,12 +48,12 @@ function soft_constraints(fields, query) {
  
   const TERRIBLE = 10;
   // x = y > size > color (ramp) > text > opacity >>> detail > shape ~ strokeDash ~ row = column
-  let continuous_quant_penalties = {
+  const continuous_quant_penalties = {
     // copy-pasted from Ham's code, doesn't match the doc above
       x: 0,
       y: 0,
       size: 0.575,
-      color: 0.725,  // Middle between -0.7 and -0.75
+      color: 0.725,  // Middle between 0.7 and 0.75
       text: 2,
       opacity: 3,
 
@@ -65,7 +64,7 @@ function soft_constraints(fields, query) {
   };
 
   // x = y > size > color (ramp) > text > row = column >>  opacity > shape ~ strokeDash > detail
-  let discretized_ordinal_penalties = extend({}, continuous_quant_penalties, {
+  const discretized_ordinal_penalties = extend({}, continuous_quant_penalties, {
       row: 0.75,
       column: 0.75,
 
@@ -75,7 +74,7 @@ function soft_constraints(fields, query) {
   });
 
   // x = y > color (hue) > shape ~ strokeDash > text > row = column >> detail >> size > opacity
-  let nominal_penalties = {
+  const nominal_penalties = {
       x: 0,
       y: 0,
       color: 0.6, // TODO: make it adjustable based on preference (shape is better for black and white)
