@@ -48,6 +48,10 @@ const solve = `
 ; (get-model)
 `;
 
+function assert(s) {
+  return `(assert ${s})\n`;
+}
+
 function buildProgram(fields, query) {
   let program = "";
   
@@ -65,7 +69,7 @@ function buildProgram(fields, query) {
   
   // add mark type constraint
   if (query.mark) {
-    program += `(assert (= mark ${query.mark}Mark))`;
+    program += assert(`(= mark ${query.mark}Mark)`);
   }
 
   // add encodings
@@ -75,10 +79,10 @@ function buildProgram(fields, query) {
       const enc = `e${i}`;
       program += `(declare-const ${enc} Encoding)`;
       if (e.field) {
-        program += `(assert (= (field ${enc}) ${e.field}))`;
+        program += assert(`(= (field ${enc}) ${e.field})`);
       }
       if (e.channel) {
-        program += `(assert (= (channel ${enc}) ${e.channel}))`;
+        program += assert(`(= (channel ${enc}) ${e.channel})`);
       }
       encs.push(enc);
     });
@@ -88,29 +92,36 @@ function buildProgram(fields, query) {
 
   if (encs.length === 0) {
     // we need at least one channel
-    program += "(assert false)";
+    program += assert("false");
   } else {
     const barOrTick = `(or (= mark BarMark) (= mark TickMark))`;
 
 
     // cannot use the same channel twice
     const channels = encs.map(e => `(channel ${e})`).join(" ");
-    program += `(assert (distinct ${channels}))\n`;
+    program += assert(`(distinct ${channels})`);
 
     // bar and tick should not use size
     const channelsSize = encs.map(e => `(= (channel ${e}) Size)`).join(" ");
-    program += `(assert (=> ${barOrTick} (not (or ${channelsSize}))))\n`;
+    program += assert(`(=> ${barOrTick} (not (or ${channelsSize})))`);
 
     // bar and tick mark need quantitative and not binned on X or Y
-    const channelsQuant = encs.map(e => `(and (= (channel ${e}) X) (= (channel ${e}) Y) (= (type ${e}) Quantitative) (not (binned ${e})))`).join(" ");
-    program += `(assert (=> ${barOrTick} (or ${channelsQuant}) ))`;
+    const channelsQuant = encs.map(e => 
+      `(and
+          (= (channel ${e}) X) 
+          (= (channel ${e}) Y) 
+          (= (type ${e}) Quantitative)
+          (not (binned ${e}))
+      )`).join(" ");
+
+    program += assert(`(=> ${barOrTick} (or ${channelsQuant}) )`);
 
     // bar and tick mark cannot have two quantitative
     // TODO
 
     // text channel can only be used with text mark, and text channel is required
     const channelsText = encs.map(e => `(= (channel ${e}) Text)`).join(" ");
-    program += `(assert (=> (= mark TextMark) (or ${channelsText})))`;
+    program += assert(`(=> (= mark TextMark) (or ${channelsText}))`);
   }
 
   program += solve;
