@@ -3,6 +3,7 @@
 const exec = require("child_process").exec;
 const stream = require("stream");
 const fs = require("fs");
+const softConstraints = require("./softConstraints");
 
 const types = `
 ; data related types
@@ -123,6 +124,13 @@ function buildProgram(fields, query) {
     const channelsText = encs.map(e => `(= (channel ${e}) Text)`).join(" ");
     program += assert(`(=> (= mark TextMark) (or ${channelsText}))`);
   }
+
+
+  // FIXME: greg
+  // const [defs, minimizeStmt] = softConstraints(fields, query)
+
+  // program += defs;
+  // program += minimizeStmt;
 
   program += solve;
 

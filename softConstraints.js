@@ -1,4 +1,4 @@
-function ite_from_dict(getValueExpr, dict, lastElseValue = 10000){
+function iteFromDict(getValueExpr, dict, lastElseValue = 10000){
 
   // dict should be exhaustive
   // todo: lowp check values in dict are proper
@@ -19,7 +19,7 @@ function ite_from_dict(getValueExpr, dict, lastElseValue = 10000){
     }
   };
 
-   return helper(dict.entries());
+   return helper(Object.entries(dict));
 }
 
 
@@ -30,7 +30,7 @@ function newEncName(enc, i){
   return `new_enc${i}`;
 }
 
-function soft_constraints(fields, query) {
+function softConstraints(fields, query) {
   let encPenaltyFunctionDefinitions = [];
   let penaltyFunctionDefinitions = [];
   let penaltyFunctionNames = [];
@@ -64,14 +64,14 @@ function soft_constraints(fields, query) {
   };
 
   // x = y > size > color (ramp) > text > row = column >>  opacity > shape ~ strokeDash > detail
-  const discretized_ordinal_penalties = extend({}, continuous_quant_penalties, {
+  const discretized_ordinal_penalties = Object.assign({
       row: 0.75,
       column: 0.75,
 
       shape: 3.1,
       text: 3.2,
       detail: 4
-  });
+  }, continuous_quant_penalties);
 
   // x = y > color (hue) > shape ~ strokeDash > text > row = column >> detail >> size > opacity
   const nominal_penalties = {
@@ -89,27 +89,27 @@ function soft_constraints(fields, query) {
   };
 
   let penaltyFunctionName = "type_channel_penalty";
-  let type_channel_penalty = `(define-fun ${penaltyFunctionName} ((e Encoding)) Int
+  let typeChannelPenalty = `(define-fun ${penaltyFunctionName} ((e Encoding)) Int
 
       ; (Continuous) Quantitative / Temporal Fields
       (ite (or 
               (= (type e) Quantitative)
            )
-           ${ite_from_dict("e", continuous_quant_penalties)}
+           ${iteFromDict("e", continuous_quant_penalties)}
            
            ; else Discretized Quantitative (Binned) / Temporal Fields / Ordinal
            (ite (or 
                    ;(= (type e) Binned) not yet in types
                    (= (type e) Ordinal)
                 )
-                ${ite_from_dict("e", discretized_ordinal_penalties)}
+                ${iteFromDict("e", discretized_ordinal_penalties)}
 
                 ; else it is nominal
-                ${ite_from_dict("e", nominal_penalties)}
+                ${iteFromDict("e", nominal_penalties)}
            )
       )
    )`;
-  penaltyFunctionDefinitions.push(type_channel_penalty);
+  penaltyFunctionDefinitions.push(typeChannelPenalty);
   penaltyFunctionNames.push(penaltyFunctionName);
 
   // more penalty functions go here that are f(encoding)
@@ -137,7 +137,7 @@ function soft_constraints(fields, query) {
      });
   });
 
-  let minimize_stmt = `(minimize (+ ${penaltyStatements.join(" ")}))`;
+  let minimizeStmt = `(minimize (+ ${penaltyStatements.join(" ")}))`;
 
   // if deisred, we can add a constraint for
   // sum of the penalties for old > sum of the penalties for the new
@@ -145,7 +145,7 @@ function soft_constraints(fields, query) {
 
   let definitions = encPenaltyFunctionDefinitions.join(" ");
 
-  return [definitions, minimize_stmt];
+  return [definitions, minimizeStmt];
 
   // can also solve for other conditions
   // START PARETO OPTIMAL
@@ -178,3 +178,5 @@ function soft_constraints(fields, query) {
   // solver_minimize = `(minimize (+ ${to_minimize_expressions.join(" ")}))`;
    
 }
+
+module.exports = softConstraints;
