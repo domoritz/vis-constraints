@@ -3,19 +3,19 @@ export function assert(s: string) {
   return `(assert ${s})\n\n`;
 }
 
-function implies(a: string, b: string) {
+export function implies(a: string, b: string) {
   return `(=> ${a} ${b})\n`;
 }
 
-function and(...exprs: string[]) {
+export function and(...exprs: string[]) {
   return `(and
-    ${exprs.join("\n")}
+  ${exprs.join("\n")}
   )`;
 }
 
-function or(...exprs: string[]) {
+export function or(...exprs: string[]) {
   return `(or
-    ${exprs.join("\n")}
+  ${exprs.join("\n")}
   )`;
 }
 
@@ -23,60 +23,116 @@ export function eq(a: string, b: string) {
   return `(= ${a} ${b})`;
 }
 
-function not(s) {
+export function not(s) {
   return `(not ${s})`;
 }
 
+function isDimension(e: string) {
+  return or(
+    eq(`(type ${e})`, "Ordinal"),
+    eq(`(type ${e})`, "Nominal"),
+    `(binned ${e})`,
+  )
+}
+
 export function hardConstraints(encs: string[]) {
-    let program = "";
+  let program = "";
+  
+  const barMark = eq("mark", "BarMark");
+  const textMark = eq("mark", "TextMark");
+  const areaMark = eq("mark", "AreaMark");
+  const ruleMark = eq("mark", "RuleMark");
+  const rectMark = eq("mark", "RectMark");
+  const pointMark = eq("mark", "PointMark");
+  const tickMark = eq("mark", "TickMark");
+  const lineMark = eq("mark", "LineMark");
+  
+  const shapeEncoding = encs.map(e => eq(`(channel ${e})`, "Shape"));
+  const sizeEncoding = encs.map(e => eq(`(channel ${e})`, "Size"));
+  const textEncoding = encs.map(e => eq(`(channel ${e})`, "Text"));
+  const xEncoding = encs.map(e => eq(`(channel ${e})`, "X"));
+  const yEncoding = encs.map(e => eq(`(channel ${e})`, "Y"));
+  const detailEncoding = encs.map(e => eq(`(channel ${e})`, "Detail"));
+  
+  const aggregatedEncodings = encs.map(e => not(eq(`(agg ${e})`, "None")));
+  const rawEncodings = encs.map(e => eq(`(agg ${e})`, "None"));
+  const dimensionEncodings = encs.map(e => isDimension(e));
+  
+  // cannot use the same channel twice
+  const channels = encs.map(e => `(channel ${e})`).join(" ");
+  program += assert(`(distinct ${channels})`);
 
-    const barMark = eq("mark", "BarMark");
-    const symbolMark = eq("mark", "SymbolMark");
-    const textMark = eq("mark", "TextMark");
-    const barOrTick = or(barMark, eq("mark", "TickMark"));
+  // can only bin quantitative
+  encs.forEach(e => {
+    program += assert(implies(`(binned ${e})`, eq(`(type ${e})`, "Quantitative")));
+  });
 
-    // cannot use the same channel twice
-    const channels = encs.map(e => `(channel ${e})`).join(" ");
-    program += assert(`(distinct ${channels})`);
-
-    // bar mark requires scale to start at zero
-    const zeroScale = encs.map(e => implies(
+  // mean only works for quantitative
+  encs.forEach(e => {
+    program += assert(implies(eq(`(agg ${e})`, "Mean"), eq(`(type ${e})`, "Quantitative")));
+  });
+  
+  // bar mark requires quantitative scale to start at zero
+  const zeroScale = encs.map(e => implies(
       and(
         or(eq(`(channel ${e})`, "X"), eq(`(channel ${e})`, "Y")),
         eq(`(type ${e})`, "Quantitative")
       ),
       `(zero (scale ${e}))`
     ));
+  
+  program += assert(implies(barMark, and(...zeroScale)))
+  
+  // shape channel requires point mark
+  program += assert(implies(or(...shapeEncoding), pointMark));
+  
+  // size only works with some marks
+  program += assert(implies(or(...sizeEncoding), or(pointMark, ruleMark, textMark, lineMark)))
+  
+  // text channel can only be used with text mark, and text channel is required
+  program += assert(eq(textMark, or(...textEncoding)));
+  
+  // bar and tick should not use size
+  program += assert(implies(or(barMark, tickMark), not(or(...sizeEncoding))));
+  
+  // area and line require x and y
+  program += assert(implies(or(areaMark, lineMark), and(or(...xEncoding), or(...yEncoding))));
+  
+  // bar, point, tick and rule require either x or y
+  program += assert(implies(or(barMark, pointMark, tickMark, ruleMark), (or(...xEncoding, ...yEncoding))));
+  
+  // bar and tick mark needs dimension on X or Y
+  const xOrYDimension = encs.map(e =>
+    and(
+      or(eq(`(channel ${e})`, "X"), eq(`(channel ${e})`, "Y")),
+      isDimension(e)
+    ));
+  
+  program += assert(implies(or(barMark, tickMark), or(...xOrYDimension)));
 
-    program += assert(implies(barMark, and(...zeroScale)))
+  // bar and tick requires exactly one measure on X or Y
+   const xOrYMeasure = encs.map(e =>
+    and(
+      or(eq(`(channel ${e})`, "X"), eq(`(channel ${e})`, "Y")),
+      not(isDimension(e))
+    ));
+  
+  program += assert(implies(or(barMark, tickMark), or(...xOrYMeasure)));
+  
+  // aggregate also should have a dimension
+  program += assert(implies(or(...aggregatedEncodings), or(...dimensionEncodings)));
 
-    // bar and tick should not use size
-    const channelsSize = encs.map(e => eq(`(channel ${e})`, "Size"));
-    program += assert(implies(barOrTick, not(or(...channelsSize))));
+  // do not use log scale for bar charts
+  // TODO
 
-    // bar and tick mark needs ordinal, nominal, or binned quantitative on X or Y
-    const channelsCat = encs.map(e =>
-      and(
-        or(eq(`(channel ${e})`, "X"), eq(`(channel ${e})`, "Y")),
-        or(
-          eq(`(type ${e})`, "Ordinal"),
-          eq(`(type ${e})`, "Nominal"),
-          and(
-            eq(`(type ${e})`, "Quantitative")),
-            `(binned ${e})`
-          )
-        )
-      );
+  // details requires aggregation
+  program += assert(implies(or(...detailEncoding), or(...aggregatedEncodings)))
 
-    program += assert(implies(barOrTick, or(...channelsCat)));
+  // stacked plot should only use linear scale
+  // TODO
 
-    // text channel can only be used with text mark, and text channel is required
-    const channelsText = encs.map(e => eq(`(channel ${e})`, "Text"));
-    program += assert(eq(textMark, or(...channelsText)));
+  // no not aggregate everything, TODO: make soft
+  program += assert(or(...rawEncodings));
 
-    // shape requires symbol mark
-    const channelsShape = encs.map(e => eq(`(channel ${e})`, "Shape"));
-    program += assert(eq(symbolMark, or(...channelsShape)));
-
-    return program;
+  return program;
 }

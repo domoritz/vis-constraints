@@ -29,6 +29,10 @@ function newEncName(enc, i){
   return `new_enc${i}`;
 }
 
+// TODO: prefer not to use only non-positional encoding channels
+// TODO: prefer not to use the same field twice
+// why not use http://rise4fun.com/z3opt/tutorial/ ?
+
 export function softConstraints(fields, query) {
   let encPenaltyFunctionDefinitions = [];
   let penaltyFunctionDefinitions = [];

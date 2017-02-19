@@ -4,7 +4,7 @@ import {exec} from "child_process";
 import * as stream from "stream";
 import * as fs from "fs";
 import {softConstraints} from "./softConstraints";
-import {hardConstraints, assert, eq} from "./hardConstraints";
+import {hardConstraints, assert, eq, not} from "./hardConstraints";
 
 const types = `
 ; data related types
@@ -20,7 +20,7 @@ const types = `
 ; encoding related types
 
 (declare-datatypes () ((Marktype 
-  PointMark BarMark LineMark AreaMark SymbolMark TextMark TickMark
+  PointMark BarMark LineMark AreaMark TextMark TickMark RuleMark RectMark
 )))
 
 (declare-datatypes () ((Channel 
@@ -32,7 +32,7 @@ const types = `
 )))
 
 (declare-datatypes () ((AggFunc 
-  None Count Mean Median Min Max
+  None Count Sum Mean Median Min Max
 )))
 
 (declare-datatypes () ((Scale 
@@ -85,6 +85,13 @@ function buildProgram(fields: {name: string, type: string}[], query) {
       }
       if (e.channel) {
         program += assert(eq(`(channel ${enc})`, `${e.channel}`));
+      }
+      if (e.binned !== undefined) {
+        if (e.binned) {
+          program += assert(`(binned ${enc})`);
+        } else {
+          program += assert(not(`(binned ${enc})`));
+        }
       }
       encs.push(enc);
     });
@@ -142,9 +149,9 @@ const fields = [{
 const query = {
   mark: "Bar",
   encoding: [
-    { field: "str1" },
+    { field: "str1"},
     { field: "num1", channel: "Color" },
-    { field: "int1" }
+    { field: "int1"}
   ]
 }
 
