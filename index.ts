@@ -1,9 +1,9 @@
 #! /usr/local/bin/node
 
-const exec = require("child_process").exec;
-const stream = require("stream");
-const fs = require("fs");
-const softConstraints = require("./softConstraints");
+import {exec} from "child_process";
+import * as stream from "stream";
+import * as fs from "fs";
+import {softConstraints} from "./softConstraints";
 
 const types = `
 ; data related types
@@ -57,27 +57,27 @@ const solve = `
 ; (get-model)
 `;
 
-function assert(s) {
+function assert(s: string) {
   return `(assert ${s})\n\n`;
 }
 
-function implies(a, b) {
+function implies(a: string, b: string) {
   return `(=> ${a} ${b})\n`;
 }
 
-function and(...exprs) {
+function and(...exprs: string[]) {
   return `(and
     ${exprs.join("\n")}
   )`;
 }
 
-function or(...exprs) {
+function or(...exprs: string[]) {
   return `(or
     ${exprs.join("\n")}
   )`;
 }
 
-function eq(a, b) {
+function eq(a: string, b: string) {
   return `(= ${a} ${b})`;
 }
 
@@ -85,7 +85,7 @@ function not(s) {
   return `(not ${s})`;
 }
 
-function buildProgram(fields, query) {
+function buildProgram(fields: {name: string, type: string}[], query) {
   let program = "";
   
   program += types;

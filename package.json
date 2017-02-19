@@ -1,0 +1,16 @@
+{
+  "name": "vis-constraints",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "repository": "git@github.com:domoritz/vis-constraints.git",
+  "author": "Dominik Moritz <domoritz@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "start": "ts-node index.ts -d"
+  },
+  "dependencies": {
+    "@types/node": "^7.0.5",
+    "ts-node": "^2.1.0",
+    "typescript": "^2.1.6"
+  }
+}

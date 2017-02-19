@@ -1,9 +1,7 @@
 # vis-constraints
 
-Vega-Lite and Compassql as constraints
+Vega-Lite and Compassql as constraints.
 
-Run with
+Install dependencies with `npm install`.
 
-```bash
-./index.js
-```
+Run with `npm run start`.

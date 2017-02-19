@@ -19,9 +19,8 @@ function iteFromDict(getValueExpr, dict, lastElseValue = 10000){
     }
   };
 
-   return helper(Object.entries(dict));
+   return helper((Object as any).entries(dict));
 }
-
 
 function oldEncName(enc, i){
   return `old_enc${i}`;
@@ -30,7 +29,7 @@ function newEncName(enc, i){
   return `new_enc${i}`;
 }
 
-function softConstraints(fields, query) {
+export function softConstraints(fields, query) {
   let encPenaltyFunctionDefinitions = [];
   let penaltyFunctionDefinitions = [];
   let penaltyFunctionNames = [];
@@ -178,5 +177,3 @@ function softConstraints(fields, query) {
   // solver_minimize = `(minimize (+ ${to_minimize_expressions.join(" ")}))`;
    
 }
-
-module.exports = softConstraints;
