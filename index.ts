@@ -4,6 +4,7 @@ import {exec} from "child_process";
 import * as stream from "stream";
 import * as fs from "fs";
 import {softConstraints} from "./softConstraints";
+import {hardConstraints, assert, eq} from "./hardConstraints";
 
 const types = `
 ; data related types
@@ -34,12 +35,8 @@ const types = `
   None Count Mean Median Min Max
 )))
 
-(declare-datatypes () ((ScaleType 
-  LinearScale SequentialScale OrdinalScale PointScale BandScale
-)))
-
 (declare-datatypes () ((Scale 
-  (mk-scale (type ScaleType) (zero bool))
+  (mk-scale (zero bool))
 )))
 
 (declare-datatypes () ((Encoding
@@ -56,34 +53,6 @@ const solve = `
 (check-sat)
 ; (get-model)
 `;
-
-function assert(s: string) {
-  return `(assert ${s})\n\n`;
-}
-
-function implies(a: string, b: string) {
-  return `(=> ${a} ${b})\n`;
-}
-
-function and(...exprs: string[]) {
-  return `(and
-    ${exprs.join("\n")}
-  )`;
-}
-
-function or(...exprs: string[]) {
-  return `(or
-    ${exprs.join("\n")}
-  )`;
-}
-
-function eq(a: string, b: string) {
-  return `(= ${a} ${b})`;
-}
-
-function not(s) {
-  return `(not ${s})`;
-}
 
 function buildProgram(fields: {name: string, type: string}[], query) {
   let program = "";
@@ -127,51 +96,7 @@ function buildProgram(fields: {name: string, type: string}[], query) {
     // we need at least one channel
     program += assert("false");
   } else {
-    const barOrTick = or(eq("mark", "BarMark"), eq("mark", "TickMark"));
-
-    // cannot use the same channel twice
-    const channels = encs.map(e => `(channel ${e})`).join(" ");
-    program += assert(`(distinct ${channels})`);
-
-    // bar mark requires scale to start at zero
-    const zeroScale = encs.map(e => implies(
-      and(
-        or(eq(`(channel ${e})`, "X"), eq(`(channel ${e})`, "Y")),
-        eq(`(type ${e})`, "Quantitative")
-      ),
-      `(zero (scale ${e}))`
-    ));
-
-    program += assert(implies(eq("mark", "BarMark"), and(...zeroScale)))
-
-    // bar and tick should not use size
-    const channelsSize = encs.map(e => eq(`(channel ${e})`, "Size"));
-    program += assert(implies(barOrTick, not(or(...channelsSize))));
-
-    // bar and tick mark needs ordinal, nominal, or binned quantitative on X or Y
-    const channelsCat = encs.map(e =>
-      and(
-        or(eq(`(channel ${e})`, "X"), eq(`(channel ${e})`, "Y")),
-        or(
-          eq(`(type ${e})`, "Ordinal"),
-          eq(`(type ${e})`, "Nominal"),
-          and(
-            eq(`(type ${e})`, "Quantitative")),
-            `(binned ${e})`
-          )
-        )
-      );
-
-    program += assert(implies(barOrTick, or(...channelsCat)));
-
-    // text channel can only be used with text mark, and text channel is required
-    const channelsText = encs.map(e => eq(`(channel ${e})`, "Text"));
-    program += assert(eq(eq("mark", "TextMark"), or(...channelsText)));
-
-    // shape requires symbol mark
-    const channelsShape = encs.map(e => eq(`(channel ${e})`, "Shape"));
-    program += assert(eq(eq("mark", "SymbolMark"), or(...channelsShape)));
-
+    program += hardConstraints(encs);
   }
 
   // FIXME: greg
