@@ -35,7 +35,11 @@ function isDimension(e: string) {
   )
 }
 
-export function hardConstraints(encs: string[]) {
+function isMeasure(e: string) {
+  return not(isDimension(e));
+}
+
+export function hardConstraints(encs: string[], fields: string[]) {
   let program = "";
   
   const barMark = eq("mark", "BarMark");
@@ -61,20 +65,52 @@ export function hardConstraints(encs: string[]) {
   // cannot use the same channel twice
   const channels = encs.map(e => `(channel ${e})`).join(" ");
   program += assert(`(distinct ${channels})`);
-
-  // can only bin quantitative
+  
   encs.forEach(e => {
+    // encoding has to use one of the fields
+    const encodingField = fields.map(f =>
+      eq(`(field ${e})`, `${f}Field`)
+    );
+    encodingField.push(eq(`(field ${e})`, "countField"));
+    program += assert(or(...encodingField));
+
+    // primitive type has to support data type
+    program += assert(implies(
+      or(eq(`(type (field ${e}))`, "Boolean"), eq(`(type (field ${e}))`, "String")),
+      not(eq(`(type ${e})`, "Quantitative"))));
+
+    // can only bin quantitative
     program += assert(implies(`(binned ${e})`, eq(`(type ${e})`, "Quantitative")));
-  });
 
-  // mean only works for quantitative
-  encs.forEach(e => {
-    program += assert(implies(eq(`(agg ${e})`, "Mean"), eq(`(type ${e})`, "Quantitative")));
-  });
+    // no not use scale 0 with binned
+    program += assert(implies(`(binned ${e})`, not(`(zero (scale ${e}))`)));
 
-  // count field (*) requires count
-  encs.forEach(e => {
+    // can only do one of aggregate or bin
+    program += assert(not(and(`(binned ${e})`, not(eq(`(agg ${e})`, "None")))))
+
+    // mean and sum only works for quantitative
+    program += assert(implies(or(eq(`(agg ${e})`, "Mean"), eq(`(agg ${e})`, "Sum")), eq(`(type ${e})`, "Quantitative")));
+
+    // min, max, median only works for ordinal or quantitative
+    program += assert(implies(
+      or(eq(`(agg ${e})`, "Min"), eq(`(agg ${e})`, "Max"), eq(`(agg ${e})`, "Median")),
+      or(eq(`(type ${e})`, "Quantitative"), eq(`(type ${e})`, "Ordinal"))
+    ));
+
+    // count field (*) requires count (and vice versa)
     program += assert(eq(eq(`(field ${e})`, "countField"), eq(`(agg ${e})`, "Count")));
+  
+    // shape requires dimension
+    program += assert(implies(eq(`(channel ${e})`, "Shape"), isDimension(e)));
+
+    // size or text require measure
+    program += assert(implies(or(eq(`(channel ${e})`, "Size"), eq(`(channel ${e})`, "Text")), isMeasure(e)));
+
+    // categorical channel should not have too high cardinality
+    program += assert(implies(and(eq(`(channel ${e})`, "Color"), eq(`(type ${e})`, "Nominal")), `(<= (cardinality (field ${e})) 20)`));
+
+    // shape channel should not have too high cardinality
+    program += assert(implies(eq(`(channel ${e})`, "Shape"), `(<= (cardinality (field ${e})) 6)`));
   });
   
   // bar mark requires quantitative scale to start at zero
@@ -85,7 +121,6 @@ export function hardConstraints(encs: string[]) {
       ),
       `(zero (scale ${e}))`
     ));
-  
   program += assert(implies(barMark, and(...zeroScale)))
   
   // shape channel requires point mark
@@ -119,7 +154,7 @@ export function hardConstraints(encs: string[]) {
    const xOrYMeasure = encs.map(e =>
     and(
       or(eq(`(channel ${e})`, "X"), eq(`(channel ${e})`, "Y")),
-      not(isDimension(e))
+      isMeasure(e)
     ));
   
   program += assert(implies(or(barMark, tickMark), or(...xOrYMeasure)));

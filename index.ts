@@ -10,11 +10,11 @@ const types = `
 ; data related types
 
 (declare-datatypes () ((RawType 
-  String Number Integer Date
+  String Float Integer Date Boolean
 )))
 
 (declare-datatypes () ((Field 
-  (mk-field (name String) (type RawType))
+  (mk-field (name String) (type RawType) (cardinality Int))
 )))
 
 ; encoding related types
@@ -27,7 +27,7 @@ const types = `
   X Y Color Size Shape Text Detail
 )))
 
-(declare-datatypes () ((FieldType 
+(declare-datatypes () ((EncodingType 
   Quantitative Ordinal Nominal
 )))
 
@@ -40,7 +40,7 @@ const types = `
 )))
 
 (declare-datatypes () ((Encoding
-  (mk-enc (channel Channel) (field Field) (type FieldType) (binned Bool) (agg AggFunc) (scale Scale))
+  (mk-enc (channel Channel) (field Field) (type EncodingType) (binned Bool) (agg AggFunc) (scale Scale))
 )))
 `;
 
@@ -60,7 +60,7 @@ const solve = `
 ; (get-model)
 `;
 
-function buildProgram(fields: {name: string, type: string}[], query) {
+function buildProgram(fields: {name: string, type: string, cardinality: number}[], query) {
   let program = "";
   
   program += types;
@@ -74,6 +74,7 @@ function buildProgram(fields: {name: string, type: string}[], query) {
     (declare-const ${name} Field)
     (assert (= (name ${name}) "${f.name}"))
     (assert (= (type ${name}) ${f.type}))
+    (assert (= (cardinality ${name}) ${f.cardinality}))
     `;
   });
   
@@ -91,8 +92,14 @@ function buildProgram(fields: {name: string, type: string}[], query) {
       if (e.field) {
         program += assert(eq(`(name (field ${enc}))`, `"${e.field}"`));
       }
+      if (e.type) {
+        program += assert(eq(`(type ${enc})`, `${e.type}`));
+      }
       if (e.channel) {
         program += assert(eq(`(channel ${enc})`, `${e.channel}`));
+      }
+      if (e.aggregate) {
+        program += assert(eq(`(agg ${enc})`, `${e.aggregate}`));
       }
       if (e.binned !== undefined) {
         if (e.binned) {
@@ -101,13 +108,6 @@ function buildProgram(fields: {name: string, type: string}[], query) {
           program += assert(not(`(binned ${enc})`));
         }
       }
-
-      // encoding has to use one of the fields
-      const encodingField = fields.map(f =>
-        eq(`(field ${enc})`, `${f.name}Field`)
-      );
-      encodingField.push(eq(`(field ${enc})`, "countField"));
-      program += assert(or(...encodingField));
 
       encs.push(enc);
     });
@@ -119,7 +119,7 @@ function buildProgram(fields: {name: string, type: string}[], query) {
     // we need at least one channel
     program += assert("false");
   } else {
-    program += hardConstraints(encs);
+    program += hardConstraints(encs, fields.map(f => f.name));
   }
 
   // FIXME: greg
@@ -144,30 +144,36 @@ function buildProgram(fields: {name: string, type: string}[], query) {
 
 const fields = [{
   name: "int1",
-  type: "Integer"
+  type: "Integer",
+  cardinality: 10
 }, {
   name: "int2",
-  type: "Integer"
+  type: "Integer",
+  cardinality: 100
 }, {
-  name: "num1",
-  type: "Number"
+  name: "float1",
+  type: "Float",
+  cardinality: 1000
 }, {
-  name: "num2",
-  type: "Number"
+  name: "float2",
+  type: "Float",
+  cardinality: 1000
 }, {
   name: "str1",
-  type: "String"
+  type: "String",
+  cardinality: 3
 }, {
   name: "str2",
-  type: "String"
+  type: "String",
+  cardinality: 5
 }];
 
 const query = {
   mark: "Bar",
   encoding: [
     { field: "str1"},
-    { field: "num1", channel: "Color" },
-    { field: "*"}
+    { field: "float1", channel: "Color", binned: true },
+    { aggregate: "Count"}
   ]
 }
 
