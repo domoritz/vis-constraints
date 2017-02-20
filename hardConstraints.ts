@@ -71,6 +71,11 @@ export function hardConstraints(encs: string[]) {
   encs.forEach(e => {
     program += assert(implies(eq(`(agg ${e})`, "Mean"), eq(`(type ${e})`, "Quantitative")));
   });
+
+  // count field (*) requires count
+  encs.forEach(e => {
+    program += assert(eq(eq(`(field ${e})`, "countField"), eq(`(agg ${e})`, "Count")));
+  });
   
   // bar mark requires quantitative scale to start at zero
   const zeroScale = encs.map(e => implies(

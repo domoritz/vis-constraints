@@ -4,7 +4,7 @@ import {exec} from "child_process";
 import * as stream from "stream";
 import * as fs from "fs";
 import {softConstraints} from "./softConstraints";
-import {hardConstraints, assert, eq, not} from "./hardConstraints";
+import {hardConstraints, assert, eq, not, or} from "./hardConstraints";
 
 const types = `
 ; data related types
@@ -44,7 +44,13 @@ const types = `
 )))
 `;
 
-const declaration = `
+const countField = `
+(declare-const countField Field)
+(assert (= (name countField) "*"))
+(assert (= (type countField) Integer))
+`
+
+const markDeclaration = `
 (declare-const mark Marktype)
 `
 
@@ -58,14 +64,16 @@ function buildProgram(fields: {name: string, type: string}[], query) {
   let program = "";
   
   program += types;
-  program += declaration;
+  program += markDeclaration;
+  program += countField;
 
   // add fields
   fields.forEach(f => {
+    const name = f.name + "Field";
     program += `
-    (declare-const ${f.name} Field)
-    (assert (= (name ${f.name}) "${f.name}"))
-    (assert (= (type ${f.name}) ${f.type}))
+    (declare-const ${name} Field)
+    (assert (= (name ${name}) "${f.name}"))
+    (assert (= (type ${name}) ${f.type}))
     `;
   });
   
@@ -81,7 +89,7 @@ function buildProgram(fields: {name: string, type: string}[], query) {
       const enc = `e${i}`;
       program += `(declare-const ${enc} Encoding)`;
       if (e.field) {
-        program += assert(eq(`(field ${enc})`, `${e.field}`));
+        program += assert(eq(`(name (field ${enc}))`, `"${e.field}"`));
       }
       if (e.channel) {
         program += assert(eq(`(channel ${enc})`, `${e.channel}`));
@@ -93,6 +101,14 @@ function buildProgram(fields: {name: string, type: string}[], query) {
           program += assert(not(`(binned ${enc})`));
         }
       }
+
+      // encoding has to use one of the fields
+      const encodingField = fields.map(f =>
+        eq(`(field ${enc})`, `${f.name}Field`)
+      );
+      encodingField.push(eq(`(field ${enc})`, "countField"));
+      program += assert(or(...encodingField));
+
       encs.push(enc);
     });
   }
@@ -151,7 +167,7 @@ const query = {
   encoding: [
     { field: "str1"},
     { field: "num1", channel: "Color" },
-    { field: "int1"}
+    { field: "*"}
   ]
 }
 
@@ -161,6 +177,8 @@ if (process.argv[2] === "-o") {
   // output program instead of passing it to z3
   console.log(program);
 } else {
+  console.time("z3");
+
   // execute in z3
   const child = exec("z3 /dev/fd/0", function (err, stdout, stderr) {
     if (err) {
@@ -169,6 +187,9 @@ if (process.argv[2] === "-o") {
     if (stderr) {
       console.error(stderr);
     }
+
+    console.timeEnd("z3");
+
     // TODO: parse
     console.log(stdout);
   });
