@@ -173,6 +173,9 @@ export function hardConstraints(encs: string[], fields: string[]) {
 
   // no not aggregate everything, TODO: make soft
   program += assert(or(...rawEncodings));
+  
+  // TODO: prefer not to use only non-positional encoding channels
+  // TODO: prefer not to use the same field twice
 
   return program;
 }
