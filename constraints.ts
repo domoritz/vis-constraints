@@ -12,7 +12,7 @@ function isMeasure(e: string) {
   return not(isDimension(e));
 }
 
-export function hardConstraints(encs: string[], fields: string[]) {
+export function constraints(encs: string[], fields: string[]) {
   let program = "";
   
   const barMark = eq("mark", "BarMark");

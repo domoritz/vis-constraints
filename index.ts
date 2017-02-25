@@ -3,8 +3,8 @@
 import {exec} from "child_process";
 import * as stream from "stream";
 import * as fs from "fs";
-import {softConstraints} from "./softConstraints";
-import {hardConstraints} from "./hardConstraints";
+import {ranking} from "./ranking";
+import {constraints} from "./constraints";
 import {assert, eq, not, or} from "./helpers";
 
 const types = `
@@ -120,11 +120,11 @@ function buildProgram(fields: {name: string, type: string, cardinality: number}[
     // we need at least one channel
     program += assert("false");
   } else {
-    program += hardConstraints(encs, fields.map(f => f.name));
+    program += constraints(encs, fields.map(f => f.name));
   }
 
   // FIXME: greg
-  // const [defs, minimizeStmt] = softConstraints(fields, query)
+  // const [defs, minimizeStmt] = ranking(fields, query)
 
   // program += defs;
   // program += minimizeStmt;
