@@ -4,7 +4,8 @@ import {exec} from "child_process";
 import * as stream from "stream";
 import * as fs from "fs";
 import {softConstraints} from "./softConstraints";
-import {hardConstraints, assert, eq, not, or} from "./hardConstraints";
+import {hardConstraints} from "./hardConstraints";
+import {assert, eq, not, or} from "./helpers";
 
 const types = `
 ; data related types
