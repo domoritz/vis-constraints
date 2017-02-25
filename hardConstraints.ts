@@ -3,6 +3,10 @@ export function assert(s: string) {
   return `(assert ${s})\n\n`;
 }
 
+export function assertSoft(s: string, weight: number) {
+  return `(assert-soft ${s} :weight ${weight})\n\n`;
+}
+
 export function implies(a: string, b: string) {
   return `(=> ${a} ${b})\n`;
 }
