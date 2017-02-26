@@ -1,4 +1,4 @@
-import {eq, assert, or, not, implies, and} from "./helpers";
+import { and, assert, assertSoft, eq, implies, not, or } from "./helpers";
 
 function isDimension(e: string) {
   return or(
@@ -145,7 +145,7 @@ export function constraints(encs: string[], fields: string[]) {
   // TODO
 
   // no not aggregate everything, TODO: make soft
-  program += assert(or(...rawEncodings));
+  // program += assertSoft(or(...rawEncodings), 1);
   
   // TODO: prefer not to use only non-positional encoding channels
   // TODO: prefer not to use the same field twice
