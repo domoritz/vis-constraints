@@ -145,7 +145,7 @@ export function constraints(encs: string[], fields: string[]) {
   // TODO
 
   // no not aggregate everything, TODO: make soft
-  // program += assertSoft(or(...rawEncodings), 1);
+  program += assertSoft(or(...rawEncodings), 1);
   
   // TODO: prefer not to use only non-positional encoding channels
   // TODO: prefer not to use the same field twice
