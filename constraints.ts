@@ -1,31 +1,4 @@
-
-export function assert(s: string) {
-  return `(assert ${s})\n\n`;
-}
-
-export function implies(a: string, b: string) {
-  return `(=> ${a} ${b})\n`;
-}
-
-export function and(...exprs: string[]) {
-  return `(and
-  ${exprs.join("\n")}
-  )`;
-}
-
-export function or(...exprs: string[]) {
-  return `(or
-  ${exprs.join("\n")}
-  )`;
-}
-
-export function eq(a: string, b: string) {
-  return `(= ${a} ${b})`;
-}
-
-export function not(s) {
-  return `(not ${s})`;
-}
+import { and, assert, assertSoft, eq, implies, not, or } from "./helpers";
 
 function isDimension(e: string) {
   return or(
@@ -39,7 +12,7 @@ function isMeasure(e: string) {
   return not(isDimension(e));
 }
 
-export function hardConstraints(encs: string[], fields: string[]) {
+export function constraints(encs: string[], fields: string[]) {
   let program = "";
   
   const barMark = eq("mark", "BarMark");
@@ -172,7 +145,7 @@ export function hardConstraints(encs: string[], fields: string[]) {
   // TODO
 
   // no not aggregate everything, TODO: make soft
-  program += assert(or(...rawEncodings));
+  program += assertSoft(or(...rawEncodings), 1);
   
   // TODO: prefer not to use only non-positional encoding channels
   // TODO: prefer not to use the same field twice

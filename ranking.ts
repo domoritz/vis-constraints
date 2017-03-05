@@ -32,7 +32,7 @@ function newEncName(enc, i){
 // https://github.com/vega/compassql/tree/master/src/ranking
 // why not use http://rise4fun.com/z3opt/tutorial/ ?
 
-export function softConstraints(fields, query) {
+export function ranking(fields, query) {
   let encPenaltyFunctionDefinitions = [];
   let penaltyFunctionDefinitions = [];
   let penaltyFunctionNames = [];
