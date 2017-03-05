@@ -123,10 +123,10 @@ function buildProgram(fields: {name: string, type: string, cardinality: number}[
   }
 
   // FIXME: greg
-  // const [defs, minimizeStmt] = softConstraints(fields, query)
+  const [defs, minimizeStmt] = softConstraints(fields, query)
 
-  // program += defs;
-  // program += minimizeStmt;
+  program += defs;
+  program += minimizeStmt;
 
   program += solve;
 

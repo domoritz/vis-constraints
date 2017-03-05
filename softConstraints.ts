@@ -66,7 +66,7 @@ export function softConstraints(fields, query) {
   };
 
   // x = y > size > color (ramp) > text > row = column >>  opacity > shape ~ strokeDash > detail
-  const discretized_ordinal_penalties = Object.assign({
+  const discretized_ordinal_penalties = (Object as any).assign({
       row: 0.75,
       column: 0.75,
 
