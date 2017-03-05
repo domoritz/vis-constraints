@@ -1,2 +1,3 @@
 out.z3
 node_modules
+*.sw*
