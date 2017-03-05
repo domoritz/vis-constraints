@@ -33,11 +33,11 @@ function newEncName(enc, i){
 // why not use http://rise4fun.com/z3opt/tutorial/ ?
 
 export function ranking(fields, query) {
-  let encPenaltyFunctionDefinitions = [];
-  let penaltyFunctionDefinitions = [];
-  let penaltyFunctionNames = [];
+  let encPenaltyFunctionDefinitions: string[]  = [];
+  let penaltyFunctionDefinitions: string[]  = [];
+  let penaltyFunctionNames: string[]  = [];
 
-  const encs = [];
+  const encs: string[] = [];
   query.encoding.forEach((e, i) => {
     const enc = `e${i}`;
     encs.push(enc);
@@ -124,7 +124,7 @@ export function ranking(fields, query) {
 
   // penalties hold the expression that refers
   // to z3 functions
-  const penaltyStatements = [];
+  const penaltyStatements: string[]  = [];
   encs.forEach((enc, i) => {
      penaltyFunctionNames.forEach( (pf, j) => {
        // make each constraint
