@@ -85,9 +85,9 @@ function buildProgram(fields: {name: string, type: string, cardinality: number}[
   }
 
   // add encodings
-  const encs = [];
+  const encs: string[] = [];
   if (query.encoding) {
-    query.encoding.forEach((e, i) => {
+    query.encoding.forEach((e, i: number) => {
       const enc = `e${i}`;
       program += `(declare-const ${enc} Encoding)`;
       if (e.field) {

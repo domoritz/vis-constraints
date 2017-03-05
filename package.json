@@ -6,7 +6,8 @@
   "author": "Dominik Moritz <domoritz@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "start": "ts-node index.ts -d"
+    "start": "ts-node index.ts -d",
+    "start:debug": "ts-node --inspect --debug-brk index.ts -d"
   },
   "dependencies": {
     "@types/node": "^7.0.5",
