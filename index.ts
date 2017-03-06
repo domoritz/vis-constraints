@@ -10,6 +10,7 @@ import {assert, eq, not, or} from "./helpers";
 let testRankings = false;
 
 const types = `
+(set-option :produce-unsat-cores true)
 ; data related types
 
 (declare-datatypes () ((RawType 
@@ -59,9 +60,9 @@ const markDeclaration = `
 
 const solve = `
 ; get output
-(set-option :produce-unsat-cores true)
 (check-sat)
 ; (get-model)
+(get-unsat-core)
 `;
 
 function callZ3(program: string){
@@ -163,11 +164,12 @@ function buildProgram(fields: {name: string, type: string, cardinality: number}[
 
   if(testRankings){
     // should give e2 as text 
-    program += assert (not ( //or( 
+    program += assert (not ( or( 
                                  eq("(channel e0)", "Y"), 
+                                 eq("(channel e0)", "X"), 
                                 
-                              //   eq("(channel e2)", "Size")
-                                 ));
+                                 eq("(channel e2)", "Size")
+                                 )));
   }
 
   program += solve;
