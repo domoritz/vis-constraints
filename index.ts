@@ -7,6 +7,8 @@ import {ranking} from "./ranking";
 import {constraints} from "./constraints";
 import {assert, eq, not, or} from "./helpers";
 
+let testRankings = false;
+
 const types = `
 ; data related types
 
@@ -57,9 +59,39 @@ const markDeclaration = `
 
 const solve = `
 ; get output
+(set-option :produce-unsat-cores true)
 (check-sat)
 ; (get-model)
 `;
+
+function callZ3(program: string){
+  console.time("z3");
+
+  // execute in z3
+  const child = exec("z3 /dev/fd/0", function (err, stdout, stderr) {
+    if (err) {
+      console.error(err);
+    }
+    if (stderr) {
+      console.error(stderr);
+    }
+
+    console.timeEnd("z3");
+
+    // TODO: parse
+    console.log(stdout);
+  });
+
+  if (process.argv[2] === "-d") {
+    fs.writeFile("out.z3", program, () => {});
+  }
+  
+  const stdinStream = new stream.Readable();
+  
+  stdinStream.push(program);  // Add data to the internal queue for users of the stream to consume
+  stdinStream.push(null);   // Signals the end of the stream (EOF)
+  stdinStream.pipe(child.stdin);
+}
 
 function buildProgram(fields: {name: string, type: string, cardinality: number}[], query) {
   let program = "";
@@ -125,9 +157,18 @@ function buildProgram(fields: {name: string, type: string, cardinality: number}[
 
   // FIXME: greg
   const [defs, minimizeStmt] = ranking(fields, query, encs)
-  console.log(defs);
+  //console.log(defs);
   program += defs;
   program += minimizeStmt;
+
+  if(testRankings){
+    // should give e2 as text 
+    program += assert (not ( //or( 
+                                 eq("(channel e0)", "Y"), 
+                                
+                              //   eq("(channel e2)", "Size")
+                                 ));
+  }
 
   program += solve;
 
@@ -141,7 +182,7 @@ function buildProgram(fields: {name: string, type: string, cardinality: number}[
   `;
 
   return program;
-}
+} // END buildProgram
 
 const fields = [{
   name: "int1",
@@ -183,31 +224,11 @@ const program = buildProgram(fields, query);
 if (process.argv[2] === "-o") {
   // output program instead of passing it to z3
   console.log(program);
+} else if(process.argv[2] === "-rtest") {
+  testRankings = true;
+  let test_program = buildProgram(fields, query);
+  console.log(test_program);
+  callZ3(test_program);
 } else {
-  console.time("z3");
-
-  // execute in z3
-  const child = exec("z3 /dev/fd/0", function (err, stdout, stderr) {
-    if (err) {
-      console.error(err);
-    }
-    if (stderr) {
-      console.error(stderr);
-    }
-
-    console.timeEnd("z3");
-
-    // TODO: parse
-    console.log(stdout);
-  });
-
-  if (process.argv[2] === "-d") {
-    fs.writeFile("out.z3", program, () => {});
-  }
-  
-  const stdinStream = new stream.Readable();
-  
-  stdinStream.push(program);  // Add data to the internal queue for users of the stream to consume
-  stdinStream.push(null);   // Signals the end of the stream (EOF)
-  stdinStream.pipe(child.stdin);
+  callZ3(program);
 }
