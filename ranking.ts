@@ -42,16 +42,19 @@ export function ranking(fields, query, encs) {
   // compassql/src/ranking/effectiveness/channel.ts on feb 8
   // commit e8023aec8bd12c65bfddf36a1866dfd13869fa2d
  
-  const TERRIBLE = 10;
+  const TERRIBLE = 1000;
+
+  // From Greg: to get Int arithmetic in z3, I moved decimal
+  //   two places to right and rounded up
   // x = y > size > color (ramp) > text > opacity >>> detail > shape ~ strokeDash ~ row = column
   const continuous_quant_penalties = {
     // copy-pasted from Ham's code, doesn't match the doc above
       x: 0,
       y: 0,
-      size: 0.575,
-      color: 0.725,  // Middle between 0.7 and 0.75
-      text: 2,
-      opacity: 3,
+      size: 58,
+      color: 73,  // Middle between 0.7 and 0.75
+      text: 200,
+      opacity: 300,
 
       shape: TERRIBLE,
       row: TERRIBLE,
@@ -61,27 +64,27 @@ export function ranking(fields, query, encs) {
 
   // x = y > size > color (ramp) > text > row = column >>  opacity > shape ~ strokeDash > detail
   const discretized_ordinal_penalties = (Object as any).assign({
-      row: 0.75,
-      column: 0.75,
+      row: 75,
+      column: 75,
 
-      shape: 3.1,
-      text: 3.2,
-      detail: 4
+      shape: 310,
+      text: 320,
+      detail: 400
   }, continuous_quant_penalties);
 
   // x = y > color (hue) > shape ~ strokeDash > text > row = column >> detail >> size > opacity
   const nominal_penalties = {
       x: 0,
       y: 0,
-      color: 0.6, // TODO: make it adjustable based on preference (shape is better for black and white)
-      shape: 0.65,
-      row: 0.7,
-      column: 0.7,
-      text: 0.8,
+      color: 60, // TODO: make it adjustable based on preference (shape is better for black and white)
+      shape: 65,
+      row: 70,
+      column: 70,
+      text: 80,
 
-      detail: 2,
-      size: 3,
-      opacity: 3.1
+      detail: 200,
+      size: 300,
+      opacity: 310
   };
 
   let penaltyFunctionName = "type_channel_penalty";
