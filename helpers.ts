@@ -1,5 +1,9 @@
+let id: number = 0;
+
 export function assert(s: string) {
-  return `(assert ${s})\n\n`;
+  //return `(assert ${s})\n\n`;
+  id++;
+  return `(assert (! ${s} :named c${id}))\n\n`;
 }
 
 export function assertSoft(s: string, weight: number) {
