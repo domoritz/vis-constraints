@@ -50,8 +50,8 @@ const types = `
 
 const countField = `
 (declare-const countField Field)
-(assert (= (name countField) "*"))
-(assert (= (type countField) Integer))
+${assert(eq("(name countField)", '"*"'))}
+${assert(eq("(type countField)", "Integer"))}
 `
 
 const markDeclaration = `
@@ -104,12 +104,11 @@ function buildProgram(fields: {name: string, type: string, cardinality: number}[
   // add fields
   fields.forEach(f => {
     const name = f.name + "Field";
-    program += `
-    (declare-const ${name} Field)
-    (assert (= (name ${name}) "${f.name}"))
-    (assert (= (type ${name}) ${f.type}))
-    (assert (= (cardinality ${name}) ${f.cardinality}))
+    program += `(declare-const ${name} Field)
     `;
+    program += assert(eq(`(name ${name})`, `"${f.name}"`)) + "\n";
+    program += assert(eq(`(type ${name})`, `${f.type}`)) + "\n";
+    program += assert(eq(`(cardinality ${name})`, `${f.cardinality}`)) + "\n";
   });
   
   // add mark type constraint
