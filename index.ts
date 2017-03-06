@@ -124,8 +124,8 @@ function buildProgram(fields: {name: string, type: string, cardinality: number}[
   }
 
   // FIXME: greg
-  const [defs, minimizeStmt] = ranking(fields, query)
-
+  const [defs, minimizeStmt] = ranking(fields, query, encs)
+  console.log(defs);
   //program += defs;
   //program += minimizeStmt;
 

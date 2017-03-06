@@ -12,14 +12,16 @@ function iteFromDict(getValueExpr, dict, lastElseValue = 10000){
     else {
       const [key, value] = head;
 
-      return `(ite (= ${getValueExpr} ${key} )
-                ${value}
-                ${helper(tail)}
-              )`;
+      return `(ite (= ${getValueExpr} ${capitalize(key)} ) ${value}
+                ${helper(tail)})`;
     }
   };
 
    return helper((Object as any).entries(dict));
+}
+
+function capitalize(s){
+  return s[0].toUpperCase() + s.slice(1) 
 }
 
 function oldEncName(enc, i){
@@ -32,17 +34,9 @@ function newEncName(enc, i){
 // https://github.com/vega/compassql/tree/master/src/ranking
 // why not use http://rise4fun.com/z3opt/tutorial/ ?
 
-export function ranking(fields, query) {
-  let encPenaltyFunctionDefinitions: string[]  = [];
+export function ranking(fields, query, encs) {
   let penaltyFunctionDefinitions: string[]  = [];
   let penaltyFunctionNames: string[]  = [];
-
-  const encs: string[] = [];
-  query.encoding.forEach((e, i) => {
-    const enc = `e${i}`;
-    encs.push(enc);
-  });
-
 
   // the following penalties are copy-pasted from
   // compassql/src/ranking/effectiveness/channel.ts on feb 8
@@ -97,17 +91,17 @@ export function ranking(fields, query) {
       (ite (or 
               (= (type e) Quantitative)
            )
-           ${iteFromDict("e", continuous_quant_penalties)}
+           ${iteFromDict("(channel e)", continuous_quant_penalties)}
            
            ; else Discretized Quantitative (Binned) / Temporal Fields / Ordinal
            (ite (or 
                    ;(= (type e) Binned) not yet in types
                    (= (type e) Ordinal)
                 )
-                ${iteFromDict("e", discretized_ordinal_penalties)}
+                ${iteFromDict("(channel e)", discretized_ordinal_penalties)}
 
                 ; else it is nominal
-                ${iteFromDict("e", nominal_penalties)}
+                ${iteFromDict("(channel e)", nominal_penalties)}
            )
       )
    )`;
@@ -128,7 +122,7 @@ export function ranking(fields, query) {
   encs.forEach((enc, i) => {
      penaltyFunctionNames.forEach( (pf, j) => {
        // make each constraint
-       penaltyStatements.push( `(${pf} ${newEncName(enc,i)} )` );
+       penaltyStatements.push( `(${pf} ${enc} )` );
        
        /* // if want to do compared to old solution iteratively
        penaltyStatements.push(
@@ -145,7 +139,7 @@ export function ranking(fields, query) {
   // sum of the penalties for old > sum of the penalties for the new
   // but I'm not including that now, since this should just minimize it
 
-  let definitions = encPenaltyFunctionDefinitions.join(" ");
+  let definitions = penaltyFunctionDefinitions.join(" ");
 
   return [definitions, minimizeStmt];
 
