@@ -25,7 +25,7 @@ const types = `
 )))
 
 (declare-datatypes () ((Channel 
-  X Y Color Size Shape Text Detail
+  X Y Color Size Shape Text Detail Opacity Row Column 
 )))
 
 (declare-datatypes () ((EncodingType 
