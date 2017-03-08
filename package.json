@@ -6,12 +6,13 @@
   "author": "Dominik Moritz <domoritz@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "start": "ts-node index.ts -d",
+    "start": "ts-node index.ts -d --vl vl.json",
     "start:debug": "ts-node --inspect --debug-brk index.ts -d"
   },
   "dependencies": {
     "@types/node": "^7.0.5",
     "ts-node": "^2.1.0",
-    "typescript": "^2.1.6"
+    "typescript": "^2.1.6",
+    "yargs": "^7.0.1"
   }
 }
