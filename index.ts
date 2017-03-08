@@ -58,12 +58,21 @@ const markDeclaration = `
 (declare-const mark Marktype)
 `
 
-const solve = `
-; get output
-(check-sat)
-; (get-model)
-(get-unsat-core)
-`;
+function solve(getModel: boolean, getUnsatCore: boolean){
+  let solve = `
+    ; get output
+    (check-sat)
+    `;
+  if (getModel){
+    solve+=`
+      (get-model)`
+  }
+  if (getUnsatCore){
+    solve+=`
+      (get-unsat-core)`
+  }
+  return solve;
+}
 
 function callZ3(program: string){
   console.time("z3");
@@ -171,7 +180,11 @@ function buildProgram(fields: {name: string, type: string, cardinality: number}[
                                  )));
   }
 
-  program += solve;
+  if(testRankings){
+    program += solve(false, true);
+  } else {
+    program += solve(true, false);
+  }
 
   program += `
   (echo "Marktype:")

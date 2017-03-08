@@ -1,3 +1,6 @@
+import { and, assert, assertSoft, eq, implies, not, or } from "./helpers";
+import {isDimension, isMeasure } from "./constraints";
+
 function iteFromDict(getValueExpr, dict, lastElseValue = 10000){
 
   // dict should be exhaustive
@@ -19,6 +22,23 @@ function iteFromDict(getValueExpr, dict, lastElseValue = 10000){
 
    return helper((Object as any).entries(dict));
 }
+
+/*
+greg: penalty functions with maximize let us express:
+  if enough constraints at a "lower level" of priority are violated
+  this should override constraints at a higher level
+  in terms of hierarchies (like the channel_penalty)
+
+  expressing the channel penalty as 8 different constraints, we can't
+  "group them together" to refer to their value and weight that value 
+    (it can be done but have to do the multiplication into the weight, and
+     that weight isn't a solved for variable, it is defined before the program runs
+     
+greg: how to do it with soft constraints
+for the single valued penalty functions
+    (= (channel e1) key) weight: value
+
+*/
 
 function capitalize(s){
   return s[0].toUpperCase() + s.slice(1) 
@@ -113,6 +133,49 @@ export function ranking(fields, query, encs) {
 
   // more penalty functions go here that are f(encoding)
   
+  // Greg: looks like ham's types have changed a bit?
+  // compassql/src/ranking/effectiveness/type.ts
+
+  // compassql/src/ranking/effectiveness/sizechannel.ts
+  
+  // if mark bar and channel size, penalty 200
+  const size_channel_penalties_by_mark = {
+      barMark: 200,
+      tickMark: 200,
+  };
+  penaltyFunctionName = "size_channel_penalty";
+  typeChannelPenalty = `(define-fun ${penaltyFunctionName} ((e Encoding)) Int
+      (ite ${eq("(channel e)", "Size")}
+           ${iteFromDict("mark", size_channel_penalties_by_mark, 0)}
+           0
+      )
+   )`;
+  penaltyFunctionDefinitions.push(typeChannelPenalty);
+  penaltyFunctionNames.push(penaltyFunctionName);
+
+  // mark compassql/src/ranking/effectiveness/mark.ts
+  // TODO: ask ham to open compassql and use console to output the table directly
+  // will be easier to parse the full table than copy-paste it's generating logic here
+  // double-check with ham that it's a static table (seems to be so)
+
+  // compassql/src/ranking/effectiveness/dimension.ts
+  //  Penalize if facet channels are the only dimensions
+
+  // if there is an aggregation  if  (not (= (agg enc) None)
+    // find the encoding that ... ? ask ham
+
+  encs.forEach((enc, i) => {
+
+
+  });
+  
+  // compassql/src/ranking/effectiveness/facet.ts
+  // effectiveness score for preferred facet
+  // Greg: we don't have preferred facet I think?
+  // we would just enter that as an assertion for having it as row or column directly
+  // in the query part
+  // Ham just does penalty of 1 for the "non-preferred" opposite eg just col or row
+
 
 
   // now we can have any other penalty functions we need
@@ -135,6 +198,9 @@ export function ranking(fields, query, encs) {
        */
      });
   });
+
+  // single functions
+
 
   let minimizeStmt = `(minimize (+ ${penaltyStatements.join(" ")}))`;
 

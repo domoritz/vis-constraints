@@ -1,6 +1,6 @@
 let id: number = 0;
 
-export function assert(s: string, name: string) {
+export function assert(s: string, name?: string) {
   //return `(assert ${s})\n\n`;
   id++;
   if (name === undefined){

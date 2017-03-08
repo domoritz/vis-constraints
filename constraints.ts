@@ -1,6 +1,6 @@
 import { and, assert, assertSoft, eq, implies, not, or } from "./helpers";
 
-function isDimension(e: string) {
+export function isDimension(e: string) {
   return or(
     eq(`(type ${e})`, "Ordinal"),
     eq(`(type ${e})`, "Nominal"),
@@ -8,7 +8,7 @@ function isDimension(e: string) {
   )
 }
 
-function isMeasure(e: string) {
+export function isMeasure(e: string) {
   return not(isDimension(e));
 }
 
