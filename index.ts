@@ -1,5 +1,3 @@
-#! /usr/local/bin/node
-
 import {exec} from "child_process";
 import * as stream from "stream";
 import * as fs from "fs";
