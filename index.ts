@@ -6,7 +6,8 @@ import {ranking} from "./ranking";
 import {constraints} from "./constraints";
 import {assert, eq, not, or} from "./helpers";
 
-let testRankings = false;
+// parse args
+const argv = yargs.argv;
 
 const types = `
 (set-option :produce-unsat-cores true)
@@ -97,7 +98,7 @@ function callZ3(program: string, callback: (output: string) => void) {
   stdinStream.pipe(child.stdin);
 }
 
-function buildProgram(fields: {name: string, type: string, cardinality: number}[], query) {
+function buildProgram(fields: {name: string, type: string, cardinality: number}[], query, produceUnsatCore: boolean) {
   let program = "";
   
   program += types;
@@ -158,12 +159,14 @@ function buildProgram(fields: {name: string, type: string, cardinality: number}[
     program += constraints(encs, fields.map(f => f.name));
   }
   
-  const [defs, minimizeStmt] = ranking(fields, query, encs)
-  //console.log(defs);
-  program += defs;
-  program += minimizeStmt;
+  if (!produceUnsatCore) {
+    const [defs, minimizeStmt] = ranking(fields, query, encs)
+    //console.log(defs);
+    program += defs;
+    program += minimizeStmt;
+  }
 
-  if(testRankings){
+  if (argv["r"]){
     // should give e2 as text 
     program += assert (not ( or( 
                                  eq("(channel e0)", "Y"), 
@@ -171,10 +174,9 @@ function buildProgram(fields: {name: string, type: string, cardinality: number}[
                                 
                                  eq("(channel e2)", "Size")
                                  )));
-    program += solve(false, true);
-  } else {
-    program += solve(true, false);
   }
+
+  program += solve(true, produceUnsatCore);
 
   program += `
   (echo "Spec:")
@@ -303,29 +305,34 @@ function parse(stdout) {
   return spec;
 }
 
-const argv = yargs.argv;
-
-if (argv["r"]) {
-  testRankings = true;
-  const program = buildProgram(fields, query);
-  console.log(program);
-  callZ3(program, console.log);
-} else {
-  const program = buildProgram(fields, query);
+function run(produceUnsatCore) {
+  const program = buildProgram(fields, query, produceUnsatCore);
 
   if (argv["d"]) {
     console.log("Writing out.z3");
+    const program = buildProgram(fields, query, false);
     fs.writeFile("out.z3", program, () => {});
   }
 
   callZ3(program, (output) => {
-    const vl = argv["vl"]
-    
-    if (vl) {
-      console.log(`Writing ${vl}`);
-      fs.writeFile(vl, JSON.stringify(parse(output)), () => {});
-    } else {
+    if (!produceUnsatCore && output.startsWith("unsat")) {
+      console.log("Program was unsat")
+      return run(true);
+    }
+
+    if (argv["v"]) {
+      console.log("Output from z3:")
       console.log(output);
+    }
+
+    if (!produceUnsatCore) {
+      const vl = argv["vl"]
+      if (vl) {
+        console.log(`Writing ${vl}`);
+        fs.writeFile(vl, JSON.stringify(parse(output)), () => {});
+      }
     }
   });
 }
+
+run(false);

@@ -6,9 +6,9 @@
   "author": "Dominik Moritz <domoritz@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "start": "ts-node index.ts -d --vl vl.json",
+    "start": "ts-node index.ts -d -v --vl vl.json",
     "start:debug": "ts-node --inspect --debug-brk index.ts -d",
-    "start:rank": "ts-node index.ts -r"
+    "start:rank": "ts-node index.ts -r -v"
   },
   "dependencies": {
     "@types/node": "^7.0.5",
