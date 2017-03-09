@@ -178,9 +178,6 @@ function buildProgram(fields: {name: string, type: string, cardinality: number}[
                                 
                                  eq("(channel e2)", "Size")
                                  )));
-  }
-
-  if(testRankings){
     program += solve(false, true);
   } else {
     program += solve(true, false);

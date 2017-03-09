@@ -1,12 +1,7 @@
 let id: number = 0;
 
 export function assert(s: string, name?: string) {
-  //return `(assert ${s})\n\n`;
-  id++;
-  if (name === undefined){
-    name = id.toString();
-  }
-  return `(assert (! ${s} :named c${name}))\n\n`;
+  return `(assert (! ${s} :named c${name || id++}))\n\n`;
 }
 
 export function assertSoft(s: string, weight: number) {
