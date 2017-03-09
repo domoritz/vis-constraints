@@ -7,7 +7,8 @@
   "license": "MIT",
   "scripts": {
     "start": "ts-node index.ts -d --vl vl.json",
-    "start:debug": "ts-node --inspect --debug-brk index.ts -d"
+    "start:debug": "ts-node --inspect --debug-brk index.ts -d",
+    "start:rank": "ts-node index.ts -r"
   },
   "dependencies": {
     "@types/node": "^7.0.5",

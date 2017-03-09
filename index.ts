@@ -6,7 +6,10 @@ import {ranking} from "./ranking";
 import {constraints} from "./constraints";
 import {assert, eq, not, or} from "./helpers";
 
+let testRankings = false;
+
 const types = `
+(set-option :produce-unsat-cores true)
 ; data related types
 
 (declare-datatypes () ((RawType 
@@ -46,19 +49,53 @@ None Count Sum Mean Median Min Max
 
 const countField = `
 (declare-const countField Field)
-(assert (= (name countField) "*"))
-(assert (= (type countField) Integer))
+${assert(eq("(name countField)", '"*"'))}
+${assert(eq("(type countField)", "Integer"))}
 `
 
 const markDeclaration = `
 (declare-const mark Marktype)
 `
 
-const solve = `
-; get output
-(check-sat)
-; (get-model)
-`;
+function solve(getModel: boolean, getUnsatCore: boolean){
+  let solve = `
+    ; get output
+    (check-sat)
+    `;
+  if (getModel){
+    solve+=`
+      (get-model)`
+  }
+  if (getUnsatCore){
+    solve+=`
+      (get-unsat-core)`
+  }
+  return solve;
+}
+
+function callZ3(program: string, callback: (output: string) => void) {
+  console.time("z3");
+
+  // execute in z3
+  const child = exec("z3 /dev/fd/0", function (err, stdout, stderr) {
+    if (err) {
+      console.error(err);
+    }
+    if (stderr) {
+      console.error(stderr);
+    }
+
+    console.timeEnd("z3");
+
+    callback(stdout);
+  });
+
+  const stdinStream = new stream.Readable();
+  
+  stdinStream.push(program);  // Add data to the internal queue for users of the stream to consume
+  stdinStream.push(null);   // Signals the end of the stream (EOF)
+  stdinStream.pipe(child.stdin);
+}
 
 function buildProgram(fields: {name: string, type: string, cardinality: number}[], query) {
   let program = "";
@@ -70,12 +107,11 @@ function buildProgram(fields: {name: string, type: string, cardinality: number}[
   // add fields
   fields.forEach(f => {
     const name = f.name + "Field";
-    program += `
-    (declare-const ${name} Field)
-    (assert (= (name ${name}) "${f.name}"))
-    (assert (= (type ${name}) ${f.type}))
-    (assert (= (cardinality ${name}) ${f.cardinality}))
+    program += `(declare-const ${name} Field)
     `;
+    program += assert(eq(`(name ${name})`, `"${f.name}"`)) + "\n";
+    program += assert(eq(`(type ${name})`, `${f.type}`)) + "\n";
+    program += assert(eq(`(cardinality ${name})`, `${f.cardinality}`)) + "\n";
   });
   
   // add mark type constraint
@@ -122,14 +158,24 @@ function buildProgram(fields: {name: string, type: string, cardinality: number}[
     program += constraints(encs, fields.map(f => f.name));
   }
   
-  // FIXME: greg
-  // const [defs, minimizeStmt] = ranking(fields, query)
-  
-  //program += defs;
-  //program += minimizeStmt;
-  
-  program += solve;
-  
+  const [defs, minimizeStmt] = ranking(fields, query, encs)
+  //console.log(defs);
+  program += defs;
+  program += minimizeStmt;
+
+  if(testRankings){
+    // should give e2 as text 
+    program += assert (not ( or( 
+                                 eq("(channel e0)", "Y"), 
+                                 eq("(channel e0)", "X"), 
+                                
+                                 eq("(channel e2)", "Size")
+                                 )));
+    program += solve(false, true);
+  } else {
+    program += solve(true, false);
+  }
+
   program += `
   (echo "Spec:")
   (get-value (mark))
@@ -137,7 +183,7 @@ function buildProgram(fields: {name: string, type: string, cardinality: number}[
   `;
   
   return program;
-}
+} // END buildProgram
 
 const fields = [{
   name: "int1",
@@ -173,8 +219,6 @@ const query = {
   { aggregate: "Count"}
   ]
 }
-
-const program = buildProgram(fields, query);
 
 function makeIterator(array: string[]) {
   let nextIndex = 0;
@@ -244,7 +288,7 @@ function parse(stdout) {
           enc.scale = {zero: true};
         }
 
-        encoding[$1] = enc;
+        encoding[$1.toLowerCase()] = enc;
       }
     )
   }
@@ -261,41 +305,27 @@ function parse(stdout) {
 
 const argv = yargs.argv;
 
-if (argv["o"]) {
-  // output program instead of passing it to z3
+if (argv["r"]) {
+  testRankings = true;
+  const program = buildProgram(fields, query);
   console.log(program);
+  callZ3(program, console.log);
 } else {
-  console.time("z3");
-  
-  // execute in z3
-  const child = exec("z3 /dev/fd/0", function (err, stdout, stderr) {
-    if (err) {
-      console.error(err);
-    }
-    if (stderr) {
-      console.error(stderr);
-    }
-    
-    console.timeEnd("z3");
-    
-    const vl = argv["vl"]
-    
-    if (vl) {
-      console.log(`Writing ${vl}`);
-      fs.writeFile(vl, JSON.stringify(parse(stdout)), () => {});
-    } else {
-      console.log(stdout);
-    }
-  });
-  
+  const program = buildProgram(fields, query);
+
   if (argv["d"]) {
     console.log("Writing out.z3");
     fs.writeFile("out.z3", program, () => {});
   }
-  
-  const stdinStream = new stream.Readable();
-  
-  stdinStream.push(program);  // Add data to the internal queue for users of the stream to consume
-  stdinStream.push(null);   // Signals the end of the stream (EOF)
-  stdinStream.pipe(child.stdin);
+
+  callZ3(program, (output) => {
+    const vl = argv["vl"]
+    
+    if (vl) {
+      console.log(`Writing ${vl}`);
+      fs.writeFile(vl, JSON.stringify(parse(output)), () => {});
+    } else {
+      console.log(output);
+    }
+  });
 }

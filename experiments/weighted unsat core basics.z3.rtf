@@ -1,0 +1,19 @@
+(set-option :produce-unsat-cores true)
+(declare-const a Int)
+(declare-const b Int)
+(assert (= b 1))
+(assert-soft (! (= a b) :named c1) :weight 0)
+
+(define-fun penalty ((a Int)) Int
+      (ite (= a 1)
+            5
+            0))
+
+; minimize done separately since 
+; to minimize penalty here, set a to not be 1
+; only soft constraint of a = b with weight 1
+(minimize (penalty a))
+
+(check-sat)
+(get-unsat-core)
+(get-model)
