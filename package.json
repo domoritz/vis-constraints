@@ -8,12 +8,15 @@
   "scripts": {
     "start": "ts-node index.ts -d -v --vl vl.json",
     "start:debug": "ts-node --inspect --debug-brk index.ts -d",
-    "start:rank": "ts-node index.ts -r -v"
+    "start:rank": "ts-node index.ts -r -v",
+    "visualize": "ts-node index.ts --vl vl.json && vl2png vl.json > vl.png && open vl.png"
   },
   "dependencies": {
     "@types/node": "^7.0.5",
     "ts-node": "^2.1.0",
     "typescript": "^2.1.6",
+    "vega": "^3.0.0-beta.25",
+    "vega-lite": "2",
     "yargs": "^7.0.1"
   }
 }

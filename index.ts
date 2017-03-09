@@ -86,7 +86,9 @@ function callZ3(program: string, callback: (output: string) => void) {
       console.error(stderr);
     }
 
-    console.timeEnd("z3");
+    if (argv["v"]) {
+      console.timeEnd("z3");
+    }
 
     callback(stdout);
   });
@@ -161,7 +163,6 @@ function buildProgram(fields: {name: string, type: string, cardinality: number}[
   
   if (!produceUnsatCore) {
     const [defs, minimizeStmt] = ranking(fields, query, encs)
-    //console.log(defs);
     program += defs;
     program += minimizeStmt;
   }
@@ -188,37 +189,46 @@ function buildProgram(fields: {name: string, type: string, cardinality: number}[
 } // END buildProgram
 
 const fields = [{
-  name: "int1",
+  name: "Cylinders",
   type: "Integer",
-  cardinality: 10
+  cardinality: 8
 }, {
-  name: "int2",
+  name: "Acceleration",
   type: "Integer",
-  cardinality: 100
-}, {
-  name: "float1",
-  type: "Float",
   cardinality: 1000
 }, {
-  name: "float2",
-  type: "Float",
+  name: "Horsepower",
+  type: "Integer",
   cardinality: 1000
 }, {
-  name: "str1",
+  name: "Miles_per_Gallon",
+  type: "Integer",
+  cardinality: 1000
+}, {
+  name: "Displacement",
+  type: "Integer",
+  cardinality: 1000
+}, {
+  name: "Weight_in_lbs",
+  type: "Integer",
+  cardinality: 1000
+}, {
+  name: "Year",
+  type: "Date",
+  cardinality: 20
+}, {
+  name: "Origin",
   type: "String",
   cardinality: 3
-}, {
-  name: "str2",
-  type: "String",
-  cardinality: 5
 }];
 
 const query = {
+  data: {url: "cars.json"},
   mark: "Bar",
   encoding: [
-  { field: "str1"},
-  { field: "float1", channel: "Color", binned: true },
-  { aggregate: "Count"}
+    { field: "Acceleration"},
+    { field: "Horsepower", channel: "Color", binned: true },
+    { aggregate: "Count"}
   ]
 }
 
@@ -278,7 +288,7 @@ function parse(stdout) {
           type: $5.toLowerCase()
         }
 
-        if ($6 !== "true") {
+        if ($6 === "true") {
           enc.bin = true;
         }
 
@@ -286,7 +296,7 @@ function parse(stdout) {
           enc.aggregate = $7.toLowerCase()
         }
 
-        if ($8 !== "true") {
+        if ($8 === "true") {
           enc.scale = {zero: true};
         }
 
@@ -299,8 +309,6 @@ function parse(stdout) {
     mark: marktype,
     encoding: encoding
   };
-
-  console.log(spec);
 
   return spec;
 }
@@ -316,20 +324,27 @@ function run(produceUnsatCore) {
 
   callZ3(program, (output) => {
     if (!produceUnsatCore && output.startsWith("unsat")) {
-      console.log("Program was unsat")
+      console.warn("Program was unsat");
       return run(true);
     }
 
     if (argv["v"]) {
-      console.log("Output from z3:")
+      console.log("Output from z3:");
       console.log(output);
     }
 
     if (!produceUnsatCore) {
       const vl = argv["vl"]
       if (vl) {
-        console.log(`Writing ${vl}`);
-        fs.writeFile(vl, JSON.stringify(parse(output)), () => {});
+        const spec: any = parse(output);
+        spec.data = query.data;
+
+        if (argv["v"]) {
+          console.log(`Writing ${vl}`);
+          console.log(spec);
+        }
+
+        fs.writeFile(vl, JSON.stringify(spec), () => {});
       }
     }
   });

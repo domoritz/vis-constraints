@@ -55,8 +55,11 @@ export function constraints(encs: string[], fields: string[]) {
     // can only bin quantitative
     program += assert(implies(`(binned ${e})`, eq(`(type ${e})`, "Quantitative")));
 
-    // no not use scale 0 with binned
+    // no not use scale zero with binned
     program += assert(implies(`(binned ${e})`, not(`(zero (scale ${e}))`)));
+
+    // do not use scale zero with ordinal
+    program += assert(implies(eq(`(type ${e})`, "Ordinal"), not(`(zero (scale ${e}))`)));
 
     // can only do one of aggregate or bin
     program += assert(not(and(`(binned ${e})`, not(eq(`(agg ${e})`, "None")))))
