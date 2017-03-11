@@ -8,7 +8,6 @@
   "scripts": {
     "start": "ts-node index.ts -d -v --vl vl.json",
     "start:debug": "ts-node --inspect --debug-brk index.ts -d",
-    "start:rank": "ts-node index.ts -r -v",
     "run": "ts-node index.ts --vl vl.json",
     "postrun": "vl2png vl.json > vl.png && open vl.png"
   },

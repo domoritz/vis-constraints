@@ -86,4 +86,10 @@ export const QUERIES: Query[] = [{
     { field: "Origin"},
     { field: "Horsepower"}
   ]
+}, {
+  // 4: should be unsat
+  data: {url: "cars.json"},
+  encodings: [
+    { field: "Origin", type: "quantitative" }
+  ]
 }];

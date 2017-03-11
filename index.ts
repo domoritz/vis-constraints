@@ -1,4 +1,5 @@
 import * as yargs from 'yargs';
+import * as util from 'util';
 import {exec} from "child_process";
 import * as stream from "stream";
 import * as fs from "fs";
@@ -59,18 +60,23 @@ const markDeclaration = `
 (declare-const mark Marktype)
 `
 
-function solve(getModel: boolean, getUnsatCore: boolean){
+function solve(getUnsatCore: boolean, encs: string[]){
   let solve = `
     ; get output
     (check-sat)
     `;
-  if (getModel){
-    solve+=`
-      (get-model)`
-  }
+
   if (getUnsatCore){
     solve+=`
+      (echo "Unsat Core:")
       (get-unsat-core)`
+  } else {
+    solve+=`
+      (get-model)
+      (echo "Spec:")
+      (get-value (mark))
+      ${encs.map(e => `(get-value (${e}))`).join("\n")}
+    `;
   }
   return solve;
 }
@@ -176,7 +182,12 @@ function buildProgram(fields: Fields, query: Query, produceUnsatCore: boolean) {
     // we need at least one channel
     program += assert("false");
   } else {
-    program += constraints(encs, fields.map(f => f.name));
+    const {hard, soft}  = constraints(encs, fields.map(f => f.name));
+    program += hard.join(" ");
+
+    if (!produceUnsatCore) {
+      program += soft.join(" ");  
+    }
   }
   
   if (!produceUnsatCore) {
@@ -185,23 +196,7 @@ function buildProgram(fields: Fields, query: Query, produceUnsatCore: boolean) {
     program += minimizeStmt;
   }
 
-  if (argv["r"]){
-    // should give e2 as text 
-    program += assert (not ( or( 
-                                 eq("(channel e0)", "Y"), 
-                                 eq("(channel e0)", "X"), 
-                                
-                                 eq("(channel e2)", "Size")
-                                 )));
-  }
-
-  program += solve(true, produceUnsatCore);
-
-  program += `
-  (echo "Spec:")
-  (get-value (mark))
-  ${encs.map(e => `(get-value (${e}))`).join("\n")}
-  `;
+  program += solve(produceUnsatCore, encs);
   
   return program;
 } // END buildProgram
@@ -304,7 +299,6 @@ function run(produceUnsatCore) {
 
   if (argv["d"]) {
     console.log("Writing out.z3");
-    const program = buildProgram(FIELDS, query, false);
     fs.writeFile("out.z3", program, () => {});
   }
 
@@ -327,10 +321,10 @@ function run(produceUnsatCore) {
 
         if (argv["v"]) {
           console.log(`Writing ${vl}`);
-          console.log(spec);
+          console.log(util.inspect(spec, false, null));
         }
 
-        fs.writeFile(vl, JSON.stringify(spec), () => {});
+        fs.writeFile(vl, JSON.stringify(spec, null, ' '), () => {});
       }
     }
   });
