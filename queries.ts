@@ -87,7 +87,29 @@ export const QUERIES: Query[] = [{
     { field: "Horsepower"}
   ]
 }, {
-  // 4: should be unsat
+  // 4: some qant and some ordinal
+  data: {url: "cars.json"},
+  encodings: [
+    { type: "quantitative"},
+    { type: "ordinal"}
+  ]
+}, {
+  // 5: should give us a colored scatter plot
+  data: {url: "cars.json"},
+  encodings: [
+    { field: "Miles_per_Gallon"},
+    { field: "Acceleration"},
+    { field: "Origin"}
+  ]
+}, {
+  // 6: should give us a tick plot
+  data: {url: "cars.json"},
+  encodings: [
+    { field: "Origin"},
+    { field: "Horsepower"}
+  ]
+}, {
+  // 7: should be unsat
   data: {url: "cars.json"},
   encodings: [
     { field: "Origin", type: "quantitative" }
