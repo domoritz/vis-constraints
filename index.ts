@@ -5,11 +5,7 @@ import * as fs from "fs";
 import {ranking} from "./ranking";
 import {constraints} from "./constraints";
 import {assert, eq, not, or} from "./helpers";
-import {Data} from 'vega-lite/build/src/data';
-import {Mark} from 'vega-lite/build/src/mark';
-import {Channel} from 'vega-lite/build/src/channel';
-import {Type} from 'vega-lite/build/src/type';
-import {AggregateOp} from 'vega-lite/build/src/aggregate';
+import { FIELDS, QUERIES, Fields, Query } from './queries';
 
 // parse args
 const argv = yargs.argv;
@@ -210,67 +206,6 @@ function buildProgram(fields: Fields, query: Query, produceUnsatCore: boolean) {
   return program;
 } // END buildProgram
 
-const fields = [{
-  name: "Cylinders",
-  type: "Integer",
-  cardinality: 8
-}, {
-  name: "Acceleration",
-  type: "Integer",
-  cardinality: 1000
-}, {
-  name: "Horsepower",
-  type: "Integer",
-  cardinality: 1000
-}, {
-  name: "Miles_per_Gallon",
-  type: "Integer",
-  cardinality: 1000
-}, {
-  name: "Displacement",
-  type: "Integer",
-  cardinality: 1000
-}, {
-  name: "Weight_in_lbs",
-  type: "Integer",
-  cardinality: 1000
-}, {
-  name: "Year",
-  type: "Date",
-  cardinality: 20
-}, {
-  name: "Origin",
-  type: "String",
-  cardinality: 3
-}];
-
-export type Fields = {name: string, type: string, cardinality: number}[];
-
-export interface Query {
-  data: Data
-  mark?: Mark,
-  encodings: {
-    field?: string,
-    type?: Type,
-    channel?: Channel,
-    binned?: boolean,
-    aggregate?: AggregateOp,
-    scale?: {
-      log?: boolean,
-      zero?: boolean
-    }
-  }[]
-}
-
-const query: Query = {
-  data: {url: "cars.json"},
-  mark: "bar",
-  encodings: [
-    { field: "Acceleration"},
-    { field: "Horsepower", channel: "color", binned: true },
-    { aggregate: "count"}
-  ]
-}
 
 function makeIterator(array: string[]) {
   let nextIndex = 0;
@@ -362,12 +297,14 @@ function parse(stdout) {
   return spec;
 }
 
+const query = QUERIES[parseInt(argv["query"]) || 0];
+
 function run(produceUnsatCore) {
-  const program = buildProgram(fields, query, produceUnsatCore);
+  const program = buildProgram(FIELDS, query, produceUnsatCore);
 
   if (argv["d"]) {
     console.log("Writing out.z3");
-    const program = buildProgram(fields, query, false);
+    const program = buildProgram(FIELDS, query, false);
     fs.writeFile("out.z3", program, () => {});
   }
 
