@@ -138,11 +138,18 @@ export function constraints(encs: string[], fields: string[]) {
   // aggregate also should have a dimension
   program += assert(implies(or(...aggregatedEncodings), or(...dimensionEncodings)));
 
-  // do not use log scale for bar charts
-  // TODO
-
   // details requires aggregation
   program += assert(implies(or(...detailEncoding), or(...aggregatedEncodings)))
+
+  // do not use log scale for bar charts
+  const noLogScale = encs.map(e => implies(
+      and(
+        or(eq(`(channel ${e})`, "X"), eq(`(channel ${e})`, "Y")),
+        eq(`(type ${e})`, "Quantitative")
+      ),
+      not(`(log (scale ${e}))`)
+    ));
+  program += assert(implies(barMark, and(...noLogScale)));
 
   // stacked plot should only use linear scale
   // TODO
