@@ -103,6 +103,10 @@ export function constraints(encs: string[], fields: string[]) {
     // prefer not to use nominal or ordinal
     pushSoft(not(eq(`(type ${e})`, "Ordinal")), 1);
     pushSoft(not(eq(`(type ${e})`, "Nominal")), 2);
+
+    // prefer not to use only non-positional encoding channels
+    pushSoft(eq(`(channel ${e})`, "X"), 1);
+    pushSoft(eq(`(channel ${e})`, "Y"), 1);
   });
   
   // bar mark requires quantitative scale to start at zero
@@ -170,10 +174,8 @@ export function constraints(encs: string[], fields: string[]) {
   // stacked plot should only use linear scale
   // TODO
 
-  // no not aggregate everything
+  // do not aggregate everything
   pushSoft(or(...rawEncodings), 1);
-  
-  // TODO: prefer not to use only non-positional encoding channels
   
   // prefer not to use the same field twice
   const allFields = encs.map(e => `(name (field ${e}))`).join(" ");

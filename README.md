@@ -4,7 +4,7 @@ Vega-Lite and CompassQl as constraints.
 
 Install dependencies with `npm install`.
 
-Currently needs [z3 nightlies](https://github.com/Z3Prover/bin/tree/master/nightly).
+Currently needs [z3 nightlies](https://github.com/Z3Prover/bin/tree/master/nightly) or `brew install z3 --HEAD`.
 
 ## Run the complete pipeline
 
