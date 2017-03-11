@@ -9,7 +9,7 @@
     "start": "ts-node index.ts -d -v --vl vl.json",
     "start:debug": "ts-node --inspect --debug-brk index.ts -d",
     "run": "ts-node index.ts --vl vl.json",
-    "postrun": "vl2png vl.json > vl.png && open vl.png"
+    "postrun": "cat vl.json && vl2png vl.json > vl.png && open vl.png"
   },
   "dependencies": {
     "@types/node": "^7.0.5",

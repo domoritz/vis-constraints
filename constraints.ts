@@ -100,13 +100,26 @@ export function constraints(encs: string[], fields: string[]) {
     // shape channel should not have too high cardinality
     pushHard(implies(eq(`(channel ${e})`, "Shape"), `(<= (cardinality (field ${e})) 6)`));
 
+    // large cardinality numbers should be binned when used as ordinal
+    pushHard(implies(and(eq(`(type ${e})`, "Ordinal"), `(>= (cardinality (field ${e})) 20)`), `(binned ${e})`));
+
+    // aggregate should be used with quantitative
+    pushHard(implies(not(eq(`(agg ${e})`, "None")), eq(`(type ${e})`, "Quantitative")));
+
     // prefer not to use nominal or ordinal
     pushSoft(not(eq(`(type ${e})`, "Ordinal")), 1);
     pushSoft(not(eq(`(type ${e})`, "Nominal")), 2);
 
     // prefer not to use only non-positional encoding channels
+    // TODO: this is not a great way to encode this
     pushSoft(eq(`(channel ${e})`, "X"), 1);
     pushSoft(eq(`(channel ${e})`, "Y"), 1);
+
+    // prefer not to use binning for quantitative
+    pushSoft(implies(eq(`(type ${e})`, "Quantitative"), not(`(binned ${e})`)), 1);
+
+    // prefer to use raw
+    pushSoft(eq(`(agg ${e})`, "None"), 1);
   });
   
   // bar mark requires quantitative scale to start at zero
@@ -175,7 +188,7 @@ export function constraints(encs: string[], fields: string[]) {
   // TODO
 
   // do not aggregate everything
-  pushSoft(or(...rawEncodings), 1);
+  pushSoft(or(...rawEncodings), 10);
   
   // prefer not to use the same field twice
   const allFields = encs.map(e => `(name (field ${e}))`).join(" ");
