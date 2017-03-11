@@ -5,6 +5,11 @@ import * as fs from "fs";
 import {ranking} from "./ranking";
 import {constraints} from "./constraints";
 import {assert, eq, not, or} from "./helpers";
+import {Data} from 'vega-lite/build/src/data';
+import {Mark} from 'vega-lite/build/src/mark';
+import {Channel} from 'vega-lite/build/src/channel';
+import {Type} from 'vega-lite/build/src/type';
+import {AggregateOp} from 'vega-lite/build/src/aggregate';
 
 // parse args
 const argv = yargs.argv;
@@ -40,7 +45,7 @@ None Count Sum Mean Median Min Max
 )))
 
 (declare-datatypes () ((Scale 
-(mk-scale (zero bool))
+(mk-scale (zero bool) (log bool))
 )))
 
 (declare-datatypes () ((Encoding
@@ -100,7 +105,11 @@ function callZ3(program: string, callback: (output: string) => void) {
   stdinStream.pipe(child.stdin);
 }
 
-function buildProgram(fields: {name: string, type: string, cardinality: number}[], query, produceUnsatCore: boolean) {
+function capitalizeFirstLetter(string: string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+function buildProgram(fields: Fields, query: Query, produceUnsatCore: boolean) {
   let program = "";
   
   program += types;
@@ -119,32 +128,45 @@ function buildProgram(fields: {name: string, type: string, cardinality: number}[
   
   // add mark type constraint
   if (query.mark) {
-    program += assert(eq("mark", `${query.mark}Mark`));
+    program += assert(eq("mark", `${capitalizeFirstLetter(query.mark)}Mark`));
   }
   
   // add encodings
   const encs: string[] = [];
-  if (query.encoding) {
-    query.encoding.forEach((e, i: number) => {
+  if (query.encodings) {
+    query.encodings.forEach((e, i) => {
       const enc = `e${i}`;
       program += `(declare-const ${enc} Encoding)`;
       if (e.field) {
         program += assert(eq(`(name (field ${enc}))`, `"${e.field}"`));
       }
       if (e.type) {
-        program += assert(eq(`(type ${enc})`, `${e.type}`));
+        program += assert(eq(`(type ${enc})`, `${capitalizeFirstLetter(e.type)}`));
       }
       if (e.channel) {
-        program += assert(eq(`(channel ${enc})`, `${e.channel}`));
+        program += assert(eq(`(channel ${enc})`, `${capitalizeFirstLetter(e.channel)}`));
       }
       if (e.aggregate) {
-        program += assert(eq(`(agg ${enc})`, `${e.aggregate}`));
+        program += assert(eq(`(agg ${enc})`, `${capitalizeFirstLetter(e.aggregate)}`));
       }
       if (e.binned !== undefined) {
         if (e.binned) {
           program += assert(`(binned ${enc})`);
         } else {
           program += assert(not(`(binned ${enc})`));
+        }
+      }
+      if (e.scale !== undefined) {
+        if (e.scale.log === true) {
+          program += assert(`(log (scale ${enc}))`);
+        } else if (e.scale.log === false) {
+          program += assert(not(`(log (scale ${enc}))`));
+        }
+
+        if (e.scale.zero === true) {
+          program += assert(`(zero (scale ${enc}))`);
+        } else if (e.scale.zero === false) {
+          program += assert(not(`(zero (scale ${enc}))`));
         }
       }
       
@@ -222,13 +244,31 @@ const fields = [{
   cardinality: 3
 }];
 
-const query = {
+export type Fields = {name: string, type: string, cardinality: number}[];
+
+export interface Query {
+  data: Data
+  mark?: Mark,
+  encodings: {
+    field?: string,
+    type?: Type,
+    channel?: Channel,
+    binned?: boolean,
+    aggregate?: AggregateOp,
+    scale?: {
+      log?: boolean,
+      zero?: boolean
+    }
+  }[]
+}
+
+const query: Query = {
   data: {url: "cars.json"},
-  mark: "Bar",
-  encoding: [
+  mark: "bar",
+  encodings: [
     { field: "Acceleration"},
-    { field: "Horsepower", channel: "Color", binned: true },
-    { aggregate: "Count"}
+    { field: "Horsepower", channel: "color", binned: true },
+    { aggregate: "count"}
   ]
 }
 
@@ -279,10 +319,10 @@ function parse(stdout) {
     }
 
     (line.replace as any)(
-      // ((e0 (mk-enc     X (mk-field    "str1"     String   3) Ordinal false   Min (mk-scale   true))))
-      //                  $1               $2         $3    $4      $5    $6    $7               $8
-      /\(\(e\d* \(mk-enc (\w+) \(mk-field "(\w+|\*)" (\w+) (\d+)\) (\w+) (\w+) (\w+) \(mk-scale (\w+)\)\)\)\)/gi,
-      (_, $1, $2, $3, $4, $5, $6, $7, $8) => {
+      // ((e0 (mk-enc     X (mk-field    "str1"     String   3) Ordinal false   Min (mk-scale   true   false))))
+      //                  $1               $2         $3    $4      $5    $6    $7               $8     $9
+      /\(\(e\d* \(mk-enc (\w+) \(mk-field "(\w+|\*)" (\w+) (\d+)\) (\w+) (\w+) (\w+) \(mk-scale (\w+) (\w+)\)\)\)\)/gi,
+      (_, $1, $2, $3, $4, $5, $6, $7, $8, $9) => {
         const enc: any = {
           field: $2,
           type: $5.toLowerCase()
@@ -296,8 +336,17 @@ function parse(stdout) {
           enc.aggregate = $7.toLowerCase()
         }
 
+        enc.scale = {};
         if ($8 === "true") {
-          enc.scale = {zero: true};
+          enc.scale.zero = true;
+        }
+
+        if ($9 === "true") {
+          enc.scale.log = true;
+        }
+
+        if (Object.keys(enc.scale).length === 0) {
+          delete enc.scale;
         }
 
         encoding[$1.toLowerCase()] = enc;
