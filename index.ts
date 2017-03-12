@@ -72,6 +72,8 @@ function solve(getUnsatCore: boolean, encs: string[]){
       (get-unsat-core)`
   } else {
     solve+=`
+      ${encs.map(e => `(get-value (${e}))`).join("\n")}
+      (get-value (mark))
       (get-model)
       (echo "Spec:")
       (get-value (mark))
@@ -292,7 +294,7 @@ function parse(stdout) {
   return spec;
 }
 
-const query = QUERIES[parseInt(argv["query"]) || 0];
+const query = QUERIES[parseInt(argv.query) || 0];
 
 function run(produceUnsatCore) {
   const program = buildProgram(FIELDS, query, produceUnsatCore);

@@ -56,9 +56,11 @@ export const FIELDS: Fields = [{
   cardinality: 3
 }];
 
+const carsUrl="cars.json";
+
 export const QUERIES: Query[] = [{
-  // 0: uses many features
-  data: {url: "cars.json"},
+  // 0: uses many features, greg: works
+  data: {url: carsUrl},
   mark: "bar",
   encodings: [
     { field: "Acceleration"},
@@ -66,51 +68,51 @@ export const QUERIES: Query[] = [{
     { aggregate: "count"}
   ]
 }, {
-  // 1: should give us a scatter plot
-  data: {url: "cars.json"},
+  // 1: should give us a scatter plot, greg: wrong mark type
+  data: {url: carsUrl},
   encodings: [
     { field: "Acceleration"},
     { field: "Horsepower"},
   ]
 }, {
-  // 2: should be a histogram
-  data: {url: "cars.json"},
+  // 2: should be a histogram, greg: wrong mark type
+  data: {url: carsUrl},
   encodings: [
     { field: "Acceleration"},
     { aggregate: "count"},
   ]
 }, {
-  // 3: should be a bar chart
-  data: {url: "cars.json"},
+  // 3: should be a bar chart, greg: works
+  data: {url: carsUrl},
   encodings: [
     { field: "Origin"},
     { field: "Horsepower"}
   ]
 }, {
   // 4: some qant and some ordinal
-  data: {url: "cars.json"},
+  data: {url: carsUrl},
   encodings: [
     { type: "quantitative"},
     { type: "ordinal"}
   ]
 }, {
-  // 5: should give us a colored scatter plot
-  data: {url: "cars.json"},
+  // 5: should give us a colored scatter plot, greg: uses size for mpg, should color origin
+  data: {url: carsUrl},
   encodings: [
     { field: "Miles_per_Gallon"},
     { field: "Acceleration"},
     { field: "Origin"}
   ]
 }, {
-  // 6: should give us a tick plot
-  data: {url: "cars.json"},
+  // 6: should give us a tick plot, greg: dom this contradicts 3 above, same spec
+  data: {url: carsUrl},
   encodings: [
     { field: "Origin"},
     { field: "Horsepower"}
   ]
 }, {
-  // 7: should be unsat
-  data: {url: "cars.json"},
+  // 7: should be unsat, greg: it still shows 
+  data: {url: carsUrl},
   encodings: [
     { field: "Origin", type: "quantitative" }
   ]
