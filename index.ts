@@ -50,6 +50,10 @@ None Count Sum Mean Median Min Max
 )))
 `;
 
+const nullEnc = `
+(declare-const nullEnc Encoding)
+`;
+
 const countField = `
 (declare-const countField Field)
 ${assert(eq("(name countField)", '"*"'))}
@@ -119,6 +123,7 @@ function buildProgram(fields: Fields, query: Query, produceUnsatCore: boolean) {
   program += types;
   program += markDeclaration;
   program += countField;
+  program += nullEnc;
   
   // add fields
   fields.forEach(f => {

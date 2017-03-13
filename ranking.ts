@@ -23,6 +23,27 @@ function iteFromDict(getValueExpr, dict, lastElseValue = 10000){
    return helper((Object as any).entries(dict));
 }
 
+function iteFromDictFlipKeyValue(getValueExpr, dict, lastElseValue = "10000"){
+
+  // dict should be exhaustive
+  // todo: lowp check values in dict are proper
+  
+  /*
+   *  Recurse through dict
+   * */
+  const helper = ([head, ...tail]) => {
+    if (head === undefined)
+      return `${lastElseValue}`;
+    else {
+      const [key, value] = head;
+
+      return `(ite (= ${getValueExpr} ${value} ) ${key}
+                ${helper(tail)})`;
+    }
+  };
+
+   return helper((Object as any).entries(dict));
+}
 /*
 greg: penalty functions with maximize let us express:
   if enough constraints at a "lower level" of priority are violated
@@ -57,7 +78,7 @@ function newEncName(enc, i){
 export function ranking(fields, query, encs) {
   let penaltyFunctionDefinitions: string[]  = [];
   let penaltyFunctionNames: string[]  = [];
-
+  let markPenaltyFunctions: string[]  = [];
   // the following penalties are copy-pasted from
   // compassql/src/ranking/effectiveness/channel.ts on feb 8
   // commit e8023aec8bd12c65bfddf36a1866dfd13869fa2d
@@ -154,6 +175,32 @@ export function ranking(fields, query, encs) {
   penaltyFunctionNames.push(penaltyFunctionName);
 
   // mark compassql/src/ranking/effectiveness/mark.ts
+
+  const getXEncDict = {};
+  encs.forEach((enc, i) => {
+    getXEncDict[enc] = `(channel ${enc})`;
+  });
+
+  let dim = "X";
+  const getXEncFunc = `(define-fun get${dim}Enc () Encoding
+           ${iteFromDictFlipKeyValue(dim, getXEncDict, "nullEnc")}
+        )`;
+
+  dim = "Y";
+  const getYEncFunc = `(define-fun get${dim}Enc () Encoding
+           ${iteFromDictFlipKeyValue(dim, getXEncDict, "nullEnc")}
+        )`;
+
+ const mark_penalties = {
+  };
+
+  penaltyFunctionName="mark_penalty";
+  let mark_penalty_function= `(define-fun ${penaltyFunctionName} ((m Marktype)) Int
+      (ite ${eq("(channel e)", "Size")}
+           ${iteFromDict("mark", size_channel_penalties_by_mark, 0)}
+           0
+      )
+   )`;
   // TODO: ask ham to open compassql and use console to output the table directly
   // will be easier to parse the full table than copy-paste it's generating logic here
   // double-check with ham that it's a static table (seems to be so)
@@ -209,6 +256,7 @@ export function ranking(fields, query, encs) {
   // but I'm not including that now, since this should just minimize it
 
   let definitions = penaltyFunctionDefinitions.join(" ");
+  definitions = definitions + '\n' + getXEncFunc + '\n' + getYEncFunc;
 
   return [definitions, minimizeStmt];
 
