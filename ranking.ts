@@ -53,6 +53,7 @@ function newEncName(enc, i){
 
 // https://github.com/vega/compassql/tree/master/src/ranking
 // why not use http://rise4fun.com/z3opt/tutorial/ ?
+// many functions taken from https://docs.google.com/document/d/1RPs3smH5hq4BOwGPc5tx8IlcelpXzTUozi3bFU0M5Ss/edit#
 
 export function ranking(fields, query, encs) {
   let penaltyFunctionDefinitions: string[]  = [];
