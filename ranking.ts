@@ -157,7 +157,7 @@ export function ranking(fields, query, encs) {
 
 
  const one_mark_penalties = {
-   pointMark: 1,
+   pointMark: 0,
    textMark: 20,
    tickMark: 50,
    lineMark: 300,
@@ -168,7 +168,7 @@ export function ranking(fields, query, encs) {
  };
 
  const two_mark_penalties = {
-   pointMark: 2,
+   pointMark: 0,
    textMark: 20,
    tickMark: 50,
    lineMark: 300,
@@ -178,7 +178,7 @@ export function ranking(fields, query, encs) {
    rectMark: TERRIBLE
  };
  const two_b_two_penalties= {
-   barMark: 3,
+   barMark: 0,
    ruleMark: 3,
    pointMark: 5,
    textMark: 20,
@@ -189,9 +189,9 @@ export function ranking(fields, query, encs) {
  };
 
  const three_a_mark_penalties = {
-   tickMark: 0,
-   pointMark: 20,
-   textMark: 40,
+   tickMark: 80,
+   pointMark: 100,
+   textMark: 120,
    lineMark: 400,
    areaMark: 400,
    barMark: 500,
@@ -260,7 +260,7 @@ export function ranking(fields, query, encs) {
       (ite ${not(and(eq("getXEnc", "nullEnc"), eq("getYEnc", "nullEnc")))}
           (ite ${not(eq("getXEnc", "nullEnc"))}
             (ite ${eq("getYEnc", "nullEnc")}
-              -1
+              ${singleVariableMarkPenaltyFunc("getXEnc")}
             ; y is not null
             ; if both are aggregates
               (ite ${(and(eq("(type getXEnc)", "Quantitative"), not("(binned getXEnc)"), not(eq("(agg getXEnc)", "None")),
@@ -285,13 +285,15 @@ export function ranking(fields, query, encs) {
                     (ite ${(and(eq("(type getXEnc)", "Quantitative"), not("(binned getXEnc)"),
                                 eq("(type getYEnc)", "Quantitative"), not("(binned getYEnc)")))}
                         ${iteFromDict("m", two_mark_penalties)}
-                      ; else if at least one quant and not binned (now into 3)
-                        (ite ${or(and(eq("(type getXEnc)", "Quantitative"),not("(binned getXEnc)")),
-                                  and(eq("(type getYEnc)", "Quantitative"),not("(binned getYEnc)")))}
-                          ${iteFromDict("m", three_b_mark_penalties)}
 
-                          ;else we are into ordinal and below so all 4
-                          -10
+                      ; else if multiple measure values for each dimension (todo: add stats here for multivalue and 3c cases)
+                        (ite ${or(and(isDimension("getXEnc"), isMeasure("getYEnc")),
+                                  and(isDimension("getYEnc"), isMeasure("getXEnc")))}
+                            ${iteFromDict("m", three_a_mark_penalties)}
+                          ;else we are into ordinal and below so all 4 cases
+                          ; without adding constraints to show count with color here (ie heatmap-ish)
+                          ; overplotting very easy
+                          10
 
                         )
                             
@@ -304,14 +306,19 @@ export function ranking(fields, query, encs) {
 
             )
             ; x is null and y is not null
-            -3
+            ${singleVariableMarkPenaltyFunc("getYEnc")}
            )
           ; x and y were null
-          -2
+          0
       )
    )`;
-// -3 is ${singleVariableMarkPenaltyFunc("getYEnc")}
-// -4 is ${singleVariableMarkPenaltyFunc("getXEnc")}
+/* 
+                        (ite ${or(and(eq("(type getXEnc)", "Quantitative"),not("(binned getXEnc)")),
+                                  and(eq("(type getYEnc)", "Quantitative"),not("(binned getYEnc)")))}
+                          ${iteFromDict("m", three_b_mark_penalties)}
+                            ${iteFromDict("m", three_b_mark_penalties)}
+
+*/
    /*
     TODO: implement temporal and stats (eg duplicate values) to support diffs in 3
                (ite ${and(eq(chan, "Quantitative"), not(eq(agg, "None")))}

@@ -82,7 +82,7 @@ export const QUERIES: Query[] = [{
     { aggregate: "count"},
   ]
 }, {
-  // 3: should be a bar chart, greg: not works
+  // 3: should be a bar chart, greg: you sure Dom? maybe this got changed during presentation from ?s
   data: {url: carsUrl},
   encodings: [
     { field: "Origin"},

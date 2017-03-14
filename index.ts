@@ -179,8 +179,8 @@ function buildProgram(fields: Fields, query: Query, produceUnsatCore: boolean) {
   if (query.encodings) {
     query.encodings.forEach((e, i) => {
       const enc = `e${i}`;
-      program += assert(not(eq(enc, "nullEnc")));
       program += `(declare-const ${enc} Encoding)`;
+      program += assert(not(eq(enc, "nullEnc")));
       if (e.field) {
         program += assert(eq(`(name (field ${enc}))`, `"${e.field}"`));
       }
