@@ -122,10 +122,13 @@ export function constraints(encs: string[], fields: string[]) {
     pushSoft(eq(`(agg ${e})`, "None"), 1);
   });
   
-  // bar mark requires quantitative scale to start at zero
-  const zeroScale = encs.map(e => implies(
+  // old: bar mark requires quantitative scale to start at zero
+  // fix: bar mark requires at least one quantitative scale to start at zero
+  // should we rewrite this with isDimension?
+  let xyEncs = ["getXEnc", "getYEnc"];
+  const zeroScale = xyEncs.map(e => implies(
       and(
-        or(eq(`(channel ${e})`, "X"), eq(`(channel ${e})`, "Y")),
+        not(`(binned ${e})`),
         eq(`(type ${e})`, "Quantitative")
       ),
       `(zero (scale ${e}))`

@@ -23,27 +23,6 @@ function iteFromDict(getValueExpr, dict, lastElseValue = 10000){
    return helper((Object as any).entries(dict));
 }
 
-function iteFromDictFlipKeyValue(getValueExpr, dict, lastElseValue = "10000"){
-
-  // dict should be exhaustive
-  // todo: lowp check values in dict are proper
-  
-  /*
-   *  Recurse through dict
-   * */
-  const helper = ([head, ...tail]) => {
-    if (head === undefined)
-      return `${lastElseValue}`;
-    else {
-      const [key, value] = head;
-
-      return `(ite (= ${getValueExpr} ${value} ) ${key}
-                ${helper(tail)})`;
-    }
-  };
-
-   return helper((Object as any).entries(dict));
-}
 /*
 greg: penalty functions with maximize let us express:
   if enough constraints at a "lower level" of priority are violated
@@ -175,20 +154,7 @@ export function ranking(fields, query, encs) {
 
   // mark compassql/src/ranking/effectiveness/mark.ts
 
-  const getXEncDict = {};
-  encs.forEach((enc, i) => {
-    getXEncDict[enc] = `(channel ${enc})`;
-  });
 
-  let dim = "X";
-  const getXEncFunc = `(define-fun get${dim}Enc () Encoding
-           ${iteFromDictFlipKeyValue(dim, getXEncDict, "nullEnc")}
-        )`;
-
-  dim = "Y";
-  const getYEncFunc = `(define-fun get${dim}Enc () Encoding
-           ${iteFromDictFlipKeyValue(dim, getXEncDict, "nullEnc")}
-        )`;
 
  const one_mark_penalties = {
    pointMark: 1,
@@ -401,7 +367,7 @@ export function ranking(fields, query, encs) {
 
   // single functions
 
-  let penaltySumStmt = `(+ ${penaltyStatements.join(" ")} (* 2000 (${penaltyFunctionName} mark)))`;
+  let penaltySumStmt = `(+ ${penaltyStatements.join(" ")} (* 1 (${penaltyFunctionName} mark)))`;
   let minimizeStmt = `(minimize ${penaltySumStmt})`;
 
   // if deisred, we can add a constraint for
