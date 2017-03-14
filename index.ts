@@ -90,7 +90,7 @@ function solve(getUnsatCore: boolean, encs: string[]){
 //function debugRanking(fields: Fields, query: Query, encs, produceUnsatCore: boolean){
 function debugRanking(){ 
   //return encs.map((e) => ` (get-value (`)
-  return "(get-value (mpen))";
+  return "(get-value (pen mpen gx gy nullEnc))";
 }
 
 function callZ3(program: string, callback: (output: string) => void) {
@@ -140,6 +140,15 @@ function buildProgram(fields: Fields, query: Query, produceUnsatCore: boolean) {
     program += assert(eq(`(type ${name})`, `${f.type}`)) + "\n";
     program += assert(eq(`(cardinality ${name})`, `${f.cardinality}`)) + "\n";
   });
+
+  // add null field
+    const nullname = "nullField";
+    
+    program += `(declare-const ${nullname} Field)
+    `;
+    program += assert(eq(`(name ${nullname})`, `"nullfield"`)) + "\n";
+    program += assert(eq(`(field nullEnc)`, nullname)) + "\n";
+
   
   // add mark type constraint
   if (query.mark) {
@@ -151,6 +160,7 @@ function buildProgram(fields: Fields, query: Query, produceUnsatCore: boolean) {
   if (query.encodings) {
     query.encodings.forEach((e, i) => {
       const enc = `e${i}`;
+      program += assert(not(eq(enc, "nullEnc")));
       program += `(declare-const ${enc} Encoding)`;
       if (e.field) {
         program += assert(eq(`(name (field ${enc}))`, `"${e.field}"`));

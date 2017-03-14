@@ -75,7 +75,7 @@ export const QUERIES: Query[] = [{
     { field: "Horsepower"},
   ]
 }, {
-  // 2: should be a histogram, greg: wrong mark type
+  // 2: should be a histogram, greg: works
   data: {url: carsUrl},
   encodings: [
     { field: "Acceleration"},

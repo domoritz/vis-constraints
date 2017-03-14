@@ -191,7 +191,7 @@ export function ranking(fields, query, encs) {
         )`;
 
  const one_mark_penalties = {
-   pointMark: 0,
+   pointMark: 1,
    textMark: 20,
    tickMark: 50,
    lineMark: 300,
@@ -202,13 +202,23 @@ export function ranking(fields, query, encs) {
  };
 
  const two_mark_penalties = {
-   pointMark: 0,
+   pointMark: 2,
    textMark: 20,
    tickMark: 50,
    lineMark: 300,
    areaMark: 300,
    barMark: 400,
    ruleMark: 400,
+   rectMark: TERRIBLE
+ };
+ const two_b_two_penalties= {
+   barMark: 3,
+   ruleMark: 3,
+   pointMark: 5,
+   textMark: 20,
+   tickMark: 80,
+   lineMark: 400,
+   areaMark: 400,
    rectMark: TERRIBLE
  };
 
@@ -222,9 +232,19 @@ export function ranking(fields, query, encs) {
    ruleMark: 800,
    rectMark: TERRIBLE
  };
+ const three_b_mark_penalties = {
+   barMark: 0,
+   pointMark: 21,
+   tickMark: 40,
+   textMark: 60,
+   lineMark: 400,
+   areaMark: 400,
+   ruleMark: 800,
+   rectMark: TERRIBLE
+ };
 
  const four_a_mark_penalties = {
-   rectMark: 0,
+   rectMark: 5,
    pointMark: 20,
    textMark: 40,
    tickMark: 120,
@@ -235,7 +255,7 @@ export function ranking(fields, query, encs) {
  };
 
  const four_b_mark_penalties = {
-   pointMark: 0,
+   pointMark: 6,
    textMark: 20,
    rectMark: 40,
    tickMark: 120,
@@ -251,7 +271,7 @@ export function ranking(fields, query, encs) {
      let binned = `(binned ${e})`;
      return `
             (ite ${and(eq(type, "Quantitative"), not(binned))}
-                  ${iteFromDict("m", three_a_mark_penalties)}
+                  ${iteFromDict("m", three_a_mark_penalties)} 
                   ; else not Quantitative
                 (ite ${or(eq(type, "Nominal"), eq(type, "Ordinal"), binned)}
                   (ite ${not(eq(agg, "None"))}
@@ -274,26 +294,58 @@ export function ranking(fields, query, encs) {
       (ite ${not(and(eq("getXEnc", "nullEnc"), eq("getYEnc", "nullEnc")))}
           (ite ${not(eq("getXEnc", "nullEnc"))}
             (ite ${eq("getYEnc", "nullEnc")}
-              ${singleVariableMarkPenaltyFunc("getXEnc")}
+              -1
             ; y is not null
-              (ite ${(and(eq("(type getXEnc)", "Quantitative"), not("(binned getXEnc)"),
-                          eq("(type getYEnc)", "Quantitative"), not("(binned getYEnc)")))}
-                 ; both quant 
-                  ${iteFromDict("m", two_mark_penalties)}
-                 ; not both quant unbinned - todo
-                 0
+            ; if both are aggregates
+              (ite ${(and(eq("(type getXEnc)", "Quantitative"), not("(binned getXEnc)"), not(eq("(agg getXEnc)", "None")),
+                          eq("(type getYEnc)", "Quantitative"), not("(binned getYEnc)"), not(eq("(agg getYEnc)", "None"))))}
+                    ${iteFromDict("m", one_mark_penalties)}
+
+                ; else if only one is an aggregate and other not binned quant
+                (ite ${or((and(eq("(type getXEnc)", "Quantitative"), not("(binned getXEnc)"), eq("(agg getXEnc)", "None"),
+                               eq("(type getYEnc)", "Quantitative"), not("(binned getYEnc)"), not(eq("(agg getYEnc)", "None")))),
+                          (and(eq("(type getXEnc)", "Quantitative"), not("(binned getXEnc)"), not(eq("(agg getXEnc)", "None")),
+                               eq("(type getYEnc)", "Quantitative"), not("(binned getYEnc)"), eq("(agg getYEnc)", "None"))))}
+                  ${iteFromDict("m", two_b_two_penalties)}
+
+                  ; else if only one is an aggregate and other is binned quant
+                  (ite ${or((and(eq("(type getXEnc)", "Quantitative"), "(binned getXEnc)", eq("(agg getXEnc)", "None"),
+                                 eq("(type getYEnc)", "Quantitative"), not("(binned getYEnc)"), not(eq("(agg getYEnc)", "None")))),
+                            (and(eq("(type getXEnc)", "Quantitative"), not("(binned getXEnc)"), not(eq("(agg getXEnc)", "None")),
+                                 eq("(type getYEnc)", "Quantitative"), "(binned getYEnc)", eq("(agg getYEnc)", "None"))))}
+                    ${iteFromDict("m", three_b_mark_penalties)}
+
+                    ;else if not binned and not aggregates and quant
+                    (ite ${(and(eq("(type getXEnc)", "Quantitative"), not("(binned getXEnc)"),
+                                eq("(type getYEnc)", "Quantitative"), not("(binned getYEnc)")))}
+                        ${iteFromDict("m", two_mark_penalties)}
+                      ; else if at least one quant and not binned (now into 3)
+                        (ite ${or(and(eq("(type getXEnc)", "Quantitative"),not("(binned getXEnc)")),
+                                  and(eq("(type getYEnc)", "Quantitative"),not("(binned getYEnc)")))}
+                          ${iteFromDict("m", three_b_mark_penalties)}
+
+                          ;else we are into ordinal and below so all 4
+                          -10
+
+                        )
+                            
+
+                    )
+                  )
+                )
 
               )
 
             )
             ; x is null and y is not null
-            ${singleVariableMarkPenaltyFunc("getYEnc")}
+            -3
            )
           ; x and y were null
-          0
+          -2
       )
    )`;
-
+// -3 is ${singleVariableMarkPenaltyFunc("getYEnc")}
+// -4 is ${singleVariableMarkPenaltyFunc("getXEnc")}
    /*
     TODO: implement temporal and stats (eg duplicate values) to support diffs in 3
                (ite ${and(eq(chan, "Quantitative"), not(eq(agg, "None")))}
@@ -349,8 +401,8 @@ export function ranking(fields, query, encs) {
 
   // single functions
 
-
-  let minimizeStmt = `(minimize (+ ${penaltyStatements.join(" ")} (${penaltyFunctionName} mark)))`;
+  let penaltySumStmt = `(+ ${penaltyStatements.join(" ")} (* 2000 (${penaltyFunctionName} mark)))`;
+  let minimizeStmt = `(minimize ${penaltySumStmt})`;
 
   // if deisred, we can add a constraint for
   // sum of the penalties for old > sum of the penalties for the new
@@ -359,6 +411,9 @@ export function ranking(fields, query, encs) {
   let definitions = penaltyFunctionDefinitions.join(" ");
   definitions = definitions + '\n' + getXEncFunc + '\n' + getYEncFunc + '\n' + mark_penalty_function;
   definitions += "\n (declare-const mpen Int)  (assert (= mpen (mark_penalty mark))) ";
+  definitions += "\n (declare-const gx Encoding)  (assert (= gx getXEnc)) ";
+  definitions += "\n (declare-const gy Encoding)  (assert (= gy getYEnc)) ";
+  definitions += `\n (declare-const pen Int)  (assert (= pen ${penaltySumStmt})) `;
 
   return [definitions, minimizeStmt];
 
