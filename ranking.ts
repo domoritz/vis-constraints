@@ -89,11 +89,10 @@ export function ranking(fields, query, encs) {
   //   two places to right and rounded up
   // x = y > size > color (ramp) > text > opacity >>> detail > shape ~ strokeDash ~ row = column
   const continuous_quant_penalties = {
-    // copy-pasted from Ham's code, doesn't match the doc above
       x: 0,
       y: 0,
       size: 58,
-      color: 73,  // Middle between 0.7 and 0.75
+      color: 73,  
       text: 200,
       opacity: 300,
 
@@ -191,16 +190,118 @@ export function ranking(fields, query, encs) {
            ${iteFromDictFlipKeyValue(dim, getXEncDict, "nullEnc")}
         )`;
 
- const mark_penalties = {
-  };
+ const one_mark_penalties = {
+   pointMark: 0,
+   textMark: 20,
+   tickMark: 50,
+   lineMark: 300,
+   areaMark: 300,
+   barMark: 300,
+   ruleMark: 300,
+   rectMark: TERRIBLE
+ };
 
+ const two_mark_penalties = {
+   pointMark: 0,
+   textMark: 20,
+   tickMark: 50,
+   lineMark: 300,
+   areaMark: 300,
+   barMark: 400,
+   ruleMark: 400,
+   rectMark: TERRIBLE
+ };
+
+ const three_a_mark_penalties = {
+   tickMark: 0,
+   pointMark: 20,
+   textMark: 40,
+   lineMark: 400,
+   areaMark: 400,
+   barMark: 500,
+   ruleMark: 800,
+   rectMark: TERRIBLE
+ };
+
+ const four_a_mark_penalties = {
+   rectMark: 0,
+   pointMark: 20,
+   textMark: 40,
+   tickMark: 120,
+   barMark: 500,
+   lineMark: 500,
+   areaMark: 500,
+   ruleMark: 500,
+ };
+
+ const four_b_mark_penalties = {
+   pointMark: 0,
+   textMark: 20,
+   rectMark: 40,
+   tickMark: 120,
+   lineMark: 400,
+   areaMark: 400,
+   barMark: 400,
+   ruleMark: 400,
+ };
+
+   let singleVariableMarkPenaltyFunc = (e) => {
+     let type = `(type ${e})`;
+     let agg = `(agg ${e})`;
+     let binned = `(binned ${e})`;
+     return `
+            (ite ${and(eq(type, "Quantitative"), not(binned))}
+                  ${iteFromDict("m", three_a_mark_penalties)}
+                  ; else not Quantitative
+                (ite ${or(eq(type, "Nominal"), eq(type, "Ordinal"), binned)}
+                  (ite ${not(eq(agg, "None"))}
+                    ${iteFromDict("m", four_a_mark_penalties)}
+                    ${iteFromDict("m", four_b_mark_penalties)}
+                  )
+                    ; should never occur
+                    ${TERRIBLE}
+                )
+            )
+     `;
+   };
+
+  // pattern here is to do x or y case then do the y or x case that mirrors it immediately
+  // after, down the ITE chain.
+  // First we handle the case where y or x or both have no encoding
+  // Then we start the main cases after ; y is not null
   penaltyFunctionName="mark_penalty";
   let mark_penalty_function= `(define-fun ${penaltyFunctionName} ((m Marktype)) Int
-      (ite ${eq("(channel e)", "Size")}
-           ${iteFromDict("mark", size_channel_penalties_by_mark, 0)}
-           0
+      (ite ${not(and(eq("getXEnc", "nullEnc"), eq("getYEnc", "nullEnc")))}
+          (ite ${not(eq("getXEnc", "nullEnc"))}
+            (ite ${eq("getYEnc", "nullEnc")}
+              ${singleVariableMarkPenaltyFunc("getXEnc")}
+            ; y is not null
+              (ite ${(and(eq("(type getXEnc)", "Quantitative"), not("(binned getXEnc)"),
+                          eq("(type getYEnc)", "Quantitative"), not("(binned getYEnc)")))}
+                 ; both quant 
+                  ${iteFromDict("m", two_mark_penalties)}
+                 ; not both quant unbinned - todo
+                 0
+
+              )
+
+            )
+            ; x is null and y is not null
+            ${singleVariableMarkPenaltyFunc("getYEnc")}
+           )
+          ; x and y were null
+          0
       )
    )`;
+
+   /*
+    TODO: implement temporal and stats (eg duplicate values) to support diffs in 3
+               (ite ${and(eq(chan, "Quantitative"), not(eq(agg, "None")))}
+                  ${iteFromDict("m", three_a_mark_penalties)}
+                  ; else has an aggregation, for now use same
+                  ${iteFromDict("m", three_a_mark_penalties)}
+            )
+   */
   // TODO: ask ham to open compassql and use console to output the table directly
   // will be easier to parse the full table than copy-paste it's generating logic here
   // double-check with ham that it's a static table (seems to be so)
@@ -249,14 +350,15 @@ export function ranking(fields, query, encs) {
   // single functions
 
 
-  let minimizeStmt = `(minimize (+ ${penaltyStatements.join(" ")}))`;
+  let minimizeStmt = `(minimize (+ ${penaltyStatements.join(" ")} (${penaltyFunctionName} mark)))`;
 
   // if deisred, we can add a constraint for
   // sum of the penalties for old > sum of the penalties for the new
   // but I'm not including that now, since this should just minimize it
 
   let definitions = penaltyFunctionDefinitions.join(" ");
-  definitions = definitions + '\n' + getXEncFunc + '\n' + getYEncFunc;
+  definitions = definitions + '\n' + getXEncFunc + '\n' + getYEncFunc + '\n' + mark_penalty_function;
+  definitions += "\n (declare-const mpen Int)  (assert (= mpen (mark_penalty mark))) ";
 
   return [definitions, minimizeStmt];
 

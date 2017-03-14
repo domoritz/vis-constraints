@@ -87,6 +87,12 @@ function solve(getUnsatCore: boolean, encs: string[]){
   return solve;
 }
 
+//function debugRanking(fields: Fields, query: Query, encs, produceUnsatCore: boolean){
+function debugRanking(){ 
+  //return encs.map((e) => ` (get-value (`)
+  return "(get-value (mpen))";
+}
+
 function callZ3(program: string, callback: (output: string) => void) {
   console.time("z3");
 
@@ -201,9 +207,11 @@ function buildProgram(fields: Fields, query: Query, produceUnsatCore: boolean) {
     const [defs, minimizeStmt] = ranking(fields, query, encs)
     program += defs;
     program += minimizeStmt;
+
   }
 
   program += solve(produceUnsatCore, encs);
+  program += debugRanking()
   
   return program;
 } // END buildProgram

@@ -68,7 +68,7 @@ export const QUERIES: Query[] = [{
     { aggregate: "count"}
   ]
 }, {
-  // 1: should give us a scatter plot, greg: wrong mark type
+  // 1: should give us a scatter plot, greg: works
   data: {url: carsUrl},
   encodings: [
     { field: "Acceleration"},
@@ -82,7 +82,7 @@ export const QUERIES: Query[] = [{
     { aggregate: "count"},
   ]
 }, {
-  // 3: should be a bar chart, greg: works
+  // 3: should be a bar chart, greg: not works
   data: {url: carsUrl},
   encodings: [
     { field: "Origin"},
