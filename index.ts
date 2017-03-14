@@ -5,7 +5,7 @@ import * as stream from "stream";
 import * as fs from "fs";
 import {ranking} from "./ranking";
 import {constraints} from "./constraints";
-import {assert, eq, not, or} from "./helpers";
+import {assert, eq, not, or, iteFromDictFlipKeyValue} from "./helpers";
 import { FIELDS, QUERIES, Fields, Query } from './queries';
 
 // parse args
@@ -63,6 +63,25 @@ ${assert(eq("(type countField)", "Integer"))}
 const markDeclaration = `
 (declare-const mark Marktype)
 `
+
+function addGetXGetYEnc(encs){
+  const getXEncDict = {};
+  encs.forEach((enc, i) => {
+    getXEncDict[enc] = `(channel ${enc})`;
+  });
+
+  let dim = "X";
+  const getXEncFunc = `(define-fun get${dim}Enc () Encoding
+           ${iteFromDictFlipKeyValue(dim, getXEncDict, "nullEnc")}
+        )`;
+
+  dim = "Y";
+  const getYEncFunc = `(define-fun get${dim}Enc () Encoding
+           ${iteFromDictFlipKeyValue(dim, getXEncDict, "nullEnc")}
+        )`;
+
+  return getXEncFunc + '\n' + getYEncFunc;
+}
 
 function solve(getUnsatCore: boolean, encs: string[]){
   let solve = `
@@ -205,6 +224,8 @@ function buildProgram(fields: Fields, query: Query, produceUnsatCore: boolean) {
     // we need at least one channel
     program += assert("false");
   } else {
+
+    program += addGetXGetYEnc(encs);
     const {hard, soft}  = constraints(encs, fields.map(f => f.name));
     program += hard.join(" ");
 

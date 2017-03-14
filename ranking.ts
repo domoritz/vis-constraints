@@ -409,7 +409,8 @@ export function ranking(fields, query, encs) {
   // but I'm not including that now, since this should just minimize it
 
   let definitions = penaltyFunctionDefinitions.join(" ");
-  definitions = definitions + '\n' + getXEncFunc + '\n' + getYEncFunc + '\n' + mark_penalty_function;
+  //definitions = definitions + '\n' + getXEncFunc + '\n' + getYEncFunc + '\n' + mark_penalty_function;
+  definitions = definitions + '\n' + mark_penalty_function;
   definitions += "\n (declare-const mpen Int)  (assert (= mpen (mark_penalty mark))) ";
   definitions += "\n (declare-const gx Encoding)  (assert (= gx getXEnc)) ";
   definitions += "\n (declare-const gy Encoding)  (assert (= gy getYEnc)) ";
