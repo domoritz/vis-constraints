@@ -16,7 +16,7 @@ const types = `
 ; data related types
 
 (declare-datatypes () ((RawType 
-String Float Integer Date Boolean
+StringType FloatType IntegerType DateType BooleanType
 )))
 
 (declare-datatypes () ((Field 
@@ -156,7 +156,7 @@ function buildProgram(fields: Fields, query: Query, produceUnsatCore: boolean) {
     program += `(declare-const ${name} Field)
     `;
     program += assert(eq(`(name ${name})`, `"${f.name}"`)) + "\n";
-    program += assert(eq(`(type ${name})`, `${f.type}`)) + "\n";
+    program += assert(eq(`(type ${name})`, `${f.type}Type`)) + "\n";
     program += assert(eq(`(cardinality ${name})`, `${f.cardinality}`)) + "\n";
   });
 

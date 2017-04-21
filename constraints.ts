@@ -58,7 +58,7 @@ export function constraints(encs: string[], fields: string[]) {
 
     // primitive type has to support data type
     pushHard(implies(
-      or(eq(`(type (field ${e}))`, "Boolean"), eq(`(type (field ${e}))`, "String")),
+      or(eq(`(type (field ${e}))`, "BooleanType"), eq(`(type (field ${e}))`, "StringType")),
       not(eq(`(type ${e})`, "Quantitative"))));
 
     // can only bin quantitative
@@ -105,6 +105,9 @@ export function constraints(encs: string[], fields: string[]) {
 
     // aggregate should be used with quantitative
     pushHard(implies(not(eq(`(agg ${e})`, "None")), eq(`(type ${e})`, "Quantitative")));
+
+    // do not use nominal for string
+    pushSoft(implies(eq(`(type (field ${e}))`, "StringType"), eq(`(type ${e})`, "Nominal")), 6);
 
     // prefer not to use nominal or ordinal
     pushSoft(not(eq(`(type ${e})`, "Ordinal")), 1);

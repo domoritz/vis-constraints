@@ -1276,7 +1276,7 @@ vega-hierarchy@>=1.0.0-beta:
     vega-dataflow ">=2.0.0-beta.4"
     vega-util "1"
 
-vega-lite@2, vega-lite@2.0.0-alpha.6:
+vega-lite@2.0.0-alpha.6, vega-lite@^2.0.0-alpha.6:
   version "2.0.0-alpha.6"
   resolved "https://registry.yarnpkg.com/vega-lite/-/vega-lite-2.0.0-alpha.6.tgz#254e9b606c57c63c9a41ed3c7fc942cc44286b83"
   dependencies:
