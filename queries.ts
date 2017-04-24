@@ -116,4 +116,27 @@ export const QUERIES: Query[] = [{
   encodings: [
     { field: "Origin", type: "quantitative" }
   ]
+}, {
+  // 8: 
+  data: {url: carsUrl},
+  encodings: [
+    { type: "quantitative" },
+    { field: "Origin" },
+    { }
+  ]
+}, {
+  // 9: 
+  data: {url: carsUrl},
+  encodings: [
+    {binned: true },
+    {  },
+    {  },
+    {  } ]
+}, {
+  // 10: 
+  data: {url: carsUrl},
+  encodings: [
+    {  },
+    { }
+  ]
 }];
