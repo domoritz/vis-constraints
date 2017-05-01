@@ -139,4 +139,12 @@ export const QUERIES: Query[] = [{
     {  },
     { }
   ]
+}, {
+  // 11: has everything defined already
+  data: {url: carsUrl},
+  mark: "point",
+  encodings: [
+    { field: "Origin", type: "ordinal"},
+    { field: "Horsepower", type: "quantitative"}
+  ]
 }];

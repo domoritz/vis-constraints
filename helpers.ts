@@ -1,3 +1,10 @@
+import { Mark } from 'vega-lite/build/src/mark';
+import { Channel } from 'vega-lite/build/src/channel';
+
+export function capitalizeFirstLetter(string: string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
 let id: number = 0;
 
 export function assert(s: string, name?: string) {
@@ -33,6 +40,16 @@ export function not(s) {
   return `(not ${s})`;
 }
 
+export function mark(m: Mark) {
+  return eq("mark", capitalizeFirstLetter(m) + "Mark");
+}
+
+// TODO: make e Encoding
+export function channel(e: string, c: Channel) {
+  return eq(`(channel ${e})`, capitalizeFirstLetter(c) + "Channel");
+}
+
+// TODO: add aggregate, type, ...
 
 export function iteFromDictFlipKeyValue(getValueExpr, dict, lastElseValue = "10000"){
 
