@@ -1,4 +1,4 @@
-import { and, assert, assertSoft, eq, implies, not, or } from "./helpers";
+import { and, assert, assertSoft, eq, implies, not, or, mark, channel } from './helpers';
 
 export function isDimension(e: string) {
   return or(
@@ -24,21 +24,21 @@ export function constraints(encs: string[], fields: string[]) {
     soft.push(assertSoft(s, i));
   }
   
-  const barMark = eq("mark", "BarMark");
-  const textMark = eq("mark", "TextMark");
-  const areaMark = eq("mark", "AreaMark");
-  const ruleMark = eq("mark", "RuleMark");
-  const rectMark = eq("mark", "RectMark");
-  const pointMark = eq("mark", "PointMark");
-  const tickMark = eq("mark", "TickMark");
-  const lineMark = eq("mark", "LineMark");
+  const barMark = mark("bar");
+  const textMark = mark("text");
+  const areaMark = mark("area");
+  const ruleMark = mark("rule");
+  const rectMark = mark("rect");
+  const pointMark = mark("point");
+  const tickMark = mark("tick");
+  const lineMark = mark("line");
   
-  const shapeEncoding = encs.map(e => eq(`(channel ${e})`, "Shape"));
-  const sizeEncoding = encs.map(e => eq(`(channel ${e})`, "Size"));
-  const textEncoding = encs.map(e => eq(`(channel ${e})`, "Text"));
-  const xEncoding = encs.map(e => eq(`(channel ${e})`, "X"));
-  const yEncoding = encs.map(e => eq(`(channel ${e})`, "Y"));
-  const detailEncoding = encs.map(e => eq(`(channel ${e})`, "Detail"));
+  const shapeEncoding = encs.map(e => channel(e, "shape"));
+  const sizeEncoding = encs.map(e => channel(e, "size"));
+  const textEncoding = encs.map(e => channel(e, "text"));
+  const xEncoding = encs.map(e => channel(e, "x"));
+  const yEncoding = encs.map(e => channel(e, "y"));
+  const detailEncoding = encs.map(e => channel(e, "detail"));
   
   const aggregatedEncodings = encs.map(e => not(eq(`(agg ${e})`, "None")));
   const rawEncodings = encs.map(e => eq(`(agg ${e})`, "None"));
@@ -89,16 +89,16 @@ export function constraints(encs: string[], fields: string[]) {
     pushHard(eq(eq(`(field ${e})`, "countField"), eq(`(agg ${e})`, "Count")));
   
     // shape requires dimension
-    pushHard(implies(eq(`(channel ${e})`, "Shape"), isDimension(e)));
+    pushHard(implies(channel(e, "shape"), isDimension(e)));
 
     // size or text require measure
-    pushHard(implies(or(eq(`(channel ${e})`, "Size"), eq(`(channel ${e})`, "Text")), isMeasure(e)));
+    pushHard(implies(or(channel(e, "size"), channel(e, "text")), isMeasure(e)));
 
     // categorical channel should not have too high cardinality
-    pushHard(implies(and(eq(`(channel ${e})`, "Color"), eq(`(type ${e})`, "Nominal")), `(<= (cardinality (field ${e})) 20)`));
+    pushHard(implies(and(channel(e, "color"), eq(`(type ${e})`, "Nominal")), `(<= (cardinality (field ${e})) 20)`));
 
     // shape channel should not have too high cardinality
-    pushHard(implies(eq(`(channel ${e})`, "Shape"), `(<= (cardinality (field ${e})) 6)`));
+    pushHard(implies(channel(e, "shape"), `(<= (cardinality (field ${e})) 6)`));
 
     // large cardinality numbers should be binned when used as ordinal
     pushHard(implies(and(eq(`(type ${e})`, "Ordinal"), `(>= (cardinality (field ${e})) 20)`), `(binned ${e})`));
@@ -115,8 +115,8 @@ export function constraints(encs: string[], fields: string[]) {
 
     // prefer not to use only non-positional encoding channels
     // TODO: this is not a great way to encode this
-    pushSoft(eq(`(channel ${e})`, "X"), 1);
-    pushSoft(eq(`(channel ${e})`, "Y"), 1);
+    pushSoft(channel(e, "x"), 1);
+    pushSoft(channel(e, "y"), 1);
 
     // prefer not to use binning for quantitative
     pushSoft(implies(eq(`(type ${e})`, "Quantitative"), not(`(binned ${e})`)), 1);
@@ -159,7 +159,7 @@ export function constraints(encs: string[], fields: string[]) {
   // bar and tick mark needs dimension on X or Y
   const xOrYDimension = encs.map(e =>
     and(
-      or(eq(`(channel ${e})`, "X"), eq(`(channel ${e})`, "Y")),
+      or(channel(e, "x"), channel(e, "y")),
       isDimension(e)
     ));
   
@@ -168,7 +168,7 @@ export function constraints(encs: string[], fields: string[]) {
   // bar and tick requires exactly one measure on X or Y
    const xOrYMeasure = encs.map(e =>
     and(
-      or(eq(`(channel ${e})`, "X"), eq(`(channel ${e})`, "Y")),
+      or(channel(e, "x"), channel(e, "y")),
       isMeasure(e)
     ));
   
@@ -183,7 +183,7 @@ export function constraints(encs: string[], fields: string[]) {
   // do not use log scale for bar charts
   const noLogScale = encs.map(e => implies(
       and(
-        or(eq(`(channel ${e})`, "X"), eq(`(channel ${e})`, "Y")),
+        or(channel(e, "x"), channel(e, "y")),
         eq(`(type ${e})`, "Quantitative")
       ),
       not(`(log (scale ${e}))`)

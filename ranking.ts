@@ -1,7 +1,7 @@
-import { and, assert, assertSoft, eq, implies, not, or } from "./helpers";
+import { and, assert, assertSoft, eq, implies, not, or, capitalizeFirstLetter} from "./helpers";
 import {isDimension, isMeasure } from "./constraints";
 
-function iteFromDict(getValueExpr, dict, lastElseValue = 10000){
+function iteFromDict(getValueExpr, dict, type, lastElseValue = 10000){
 
   // dict should be exhaustive
   // todo: lowp check values in dict are proper
@@ -15,7 +15,7 @@ function iteFromDict(getValueExpr, dict, lastElseValue = 10000){
     else {
       const [key, value] = head;
 
-      return `(ite (= ${getValueExpr} ${capitalize(key)} ) ${value}
+      return `(ite (= ${getValueExpr} ${capitalizeFirstLetter(key) + type} ) ${value}
                 ${helper(tail)})`;
     }
   };
@@ -39,10 +39,6 @@ for the single valued penalty functions
     (= (channel e1) key) weight: value
 
 */
-
-function capitalize(s){
-  return s[0].toUpperCase() + s.slice(1) 
-}
 
 function oldEncName(enc, i){
   return `old_enc${i}`;
@@ -114,17 +110,17 @@ export function ranking(fields, query, encs) {
       (ite (or 
               (= (type e) Quantitative)
            )
-           ${iteFromDict("(channel e)", continuous_quant_penalties)}
+           ${iteFromDict("(channel e)", continuous_quant_penalties, "Channel")}
            
            ; else Discretized Quantitative (Binned) / Temporal Fields / Ordinal
            (ite (or 
                    ;(= (type e) Binned) not yet in types
                    (= (type e) Ordinal)
                 )
-                ${iteFromDict("(channel e)", discretized_ordinal_penalties)}
+                ${iteFromDict("(channel e)", discretized_ordinal_penalties, "Channel")}
 
                 ; else it is nominal
-                ${iteFromDict("(channel e)", nominal_penalties)}
+                ${iteFromDict("(channel e)", nominal_penalties, "Channel")}
            )
       )
    )`;
@@ -140,13 +136,13 @@ export function ranking(fields, query, encs) {
   
   // if mark bar and channel size, penalty 200
   const size_channel_penalties_by_mark = {
-      barMark: 200,
-      tickMark: 200,
+      bar: 200,
+      tick: 200,
   };
   penaltyFunctionName = "size_channel_penalty";
   typeChannelPenalty = `(define-fun ${penaltyFunctionName} ((e Encoding)) Int
-      (ite ${eq("(channel e)", "Size")}
-           ${iteFromDict("mark", size_channel_penalties_by_mark, 0)}
+      (ite ${eq("(channel e)", "SizeChannel")}
+           ${iteFromDict("mark", size_channel_penalties_by_mark, "Mark", 0)}
            0
       )
    )`;
@@ -158,78 +154,78 @@ export function ranking(fields, query, encs) {
 
 
  const one_mark_penalties = {
-   pointMark: 0,
-   textMark: 20,
-   tickMark: 50,
-   lineMark: 300,
-   areaMark: 300,
-   barMark: 300,
-   ruleMark: 300,
-   rectMark: TERRIBLE
+   point: 0,
+   text: 20,
+   tick: 50,
+   line: 300,
+   area: 300,
+   bar: 300,
+   rule: 300,
+   rect: TERRIBLE
  };
 
  const two_mark_penalties = {
-   pointMark: 0,
-   textMark: 20,
-   tickMark: 50,
-   lineMark: 300,
-   areaMark: 300,
-   barMark: 400,
-   ruleMark: 400,
-   rectMark: TERRIBLE
+   point: 0,
+   text: 20,
+   tick: 50,
+   line: 300,
+   area: 300,
+   bar: 400,
+   rule: 400,
+   rect: TERRIBLE
  };
  const two_b_two_penalties= {
-   barMark: 0,
-   ruleMark: 3,
-   pointMark: 5,
-   textMark: 20,
-   tickMark: 80,
-   lineMark: 400,
-   areaMark: 400,
-   rectMark: TERRIBLE
+   bar: 0,
+   rule: 3,
+   point: 5,
+   text: 20,
+   tick: 80,
+   line: 400,
+   area: 400,
+   rect: TERRIBLE
  };
 
  const three_a_mark_penalties = {
-   tickMark: 80,
-   pointMark: 100,
-   textMark: 120,
-   lineMark: 400,
-   areaMark: 400,
-   barMark: 500,
-   ruleMark: 800,
-   rectMark: TERRIBLE
+   tick: 80,
+   point: 100,
+   text: 120,
+   line: 400,
+   area: 400,
+   bar: 500,
+   rule: 800,
+   rect: TERRIBLE
  };
  const three_b_mark_penalties = {
-   barMark: 0,
-   pointMark: 21,
-   tickMark: 40,
-   textMark: 60,
-   lineMark: 400,
-   areaMark: 400,
-   ruleMark: 800,
-   rectMark: TERRIBLE
+   bar: 0,
+   point: 21,
+   tick: 40,
+   text: 60,
+   line: 400,
+   area: 400,
+   rule: 800,
+   rect: TERRIBLE
  };
 
  const four_a_mark_penalties = {
-   rectMark: 5,
-   pointMark: 20,
-   textMark: 40,
-   tickMark: 120,
-   barMark: 500,
-   lineMark: 500,
-   areaMark: 500,
-   ruleMark: 500,
+   rect: 5,
+   point: 20,
+   text: 40,
+   tick: 120,
+   bar: 500,
+   line: 500,
+   area: 500,
+   rule: 500,
  };
 
  const four_b_mark_penalties = {
-   pointMark: 6,
-   textMark: 20,
-   rectMark: 40,
-   tickMark: 120,
-   lineMark: 400,
-   areaMark: 400,
-   barMark: 400,
-   ruleMark: 400,
+   point: 6,
+   text: 20,
+   rect: 40,
+   tick: 120,
+   line: 400,
+   area: 400,
+   bar: 400,
+   rule: 400,
  };
 
    let singleVariableMarkPenaltyFunc = (e) => {
@@ -238,12 +234,12 @@ export function ranking(fields, query, encs) {
      let binned = `(binned ${e})`;
      return `
             (ite ${and(eq(type, "Quantitative"), not(binned))}
-                  ${iteFromDict("m", three_a_mark_penalties)} 
+                  ${iteFromDict("m", three_a_mark_penalties, "Mark")} 
                   ; else not Quantitative
                 (ite ${or(eq(type, "Nominal"), eq(type, "Ordinal"), binned)}
                   (ite ${not(eq(agg, "None"))}
-                    ${iteFromDict("m", four_a_mark_penalties)}
-                    ${iteFromDict("m", four_b_mark_penalties)}
+                    ${iteFromDict("m", four_a_mark_penalties, "Mark")}
+                    ${iteFromDict("m", four_b_mark_penalties, "Mark")}
                   )
                     ; should never occur
                     ${TERRIBLE}
@@ -266,31 +262,31 @@ export function ranking(fields, query, encs) {
             ; if both are aggregates
               (ite ${(and(eq("(type getXEnc)", "Quantitative"), not("(binned getXEnc)"), not(eq("(agg getXEnc)", "None")),
                           eq("(type getYEnc)", "Quantitative"), not("(binned getYEnc)"), not(eq("(agg getYEnc)", "None"))))}
-                    ${iteFromDict("m", one_mark_penalties)}
+                    ${iteFromDict("m", one_mark_penalties, "Mark")}
 
                 ; else if only one is an aggregate and other not binned quant
                 (ite ${or((and(eq("(type getXEnc)", "Quantitative"), not("(binned getXEnc)"), eq("(agg getXEnc)", "None"),
                                eq("(type getYEnc)", "Quantitative"), not("(binned getYEnc)"), not(eq("(agg getYEnc)", "None")))),
                           (and(eq("(type getXEnc)", "Quantitative"), not("(binned getXEnc)"), not(eq("(agg getXEnc)", "None")),
                                eq("(type getYEnc)", "Quantitative"), not("(binned getYEnc)"), eq("(agg getYEnc)", "None"))))}
-                  ${iteFromDict("m", two_b_two_penalties)}
+                  ${iteFromDict("m", two_b_two_penalties, "Mark")}
 
                   ; else if only one is an aggregate and other is binned quant
                   (ite ${or((and(eq("(type getXEnc)", "Quantitative"), "(binned getXEnc)", eq("(agg getXEnc)", "None"),
                                  eq("(type getYEnc)", "Quantitative"), not("(binned getYEnc)"), not(eq("(agg getYEnc)", "None")))),
                             (and(eq("(type getXEnc)", "Quantitative"), not("(binned getXEnc)"), not(eq("(agg getXEnc)", "None")),
                                  eq("(type getYEnc)", "Quantitative"), "(binned getYEnc)", eq("(agg getYEnc)", "None"))))}
-                    ${iteFromDict("m", three_b_mark_penalties)}
+                    ${iteFromDict("m", three_b_mark_penalties, "Mark")}
 
                     ;else if not binned and not aggregates and quant
                     (ite ${(and(eq("(type getXEnc)", "Quantitative"), not("(binned getXEnc)"),
                                 eq("(type getYEnc)", "Quantitative"), not("(binned getYEnc)")))}
-                        ${iteFromDict("m", two_mark_penalties)}
+                        ${iteFromDict("m", two_mark_penalties, "Mark")}
 
                       ; else if multiple measure values for each dimension (todo: add stats here for multivalue and 3c cases)
                         (ite ${or(and(isDimension("getXEnc"), isMeasure("getYEnc")),
                                   and(isDimension("getYEnc"), isMeasure("getXEnc")))}
-                            ${iteFromDict("m", three_a_mark_penalties)}
+                            ${iteFromDict("m", three_a_mark_penalties, "Mark")}
                           ;else we are into ordinal and below so all 4 cases
                           ; without adding constraints to show count with color here (ie heatmap-ish)
                           ; overplotting very easy

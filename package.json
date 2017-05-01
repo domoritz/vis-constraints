@@ -17,9 +17,9 @@
     "@types/node": "^7.0.5",
     "compassql": "^0.11.0",
     "ts-node": "^2.1.0",
-    "typescript": "^2.1.6",
-    "vega": "^3.0.0-beta.25",
-    "vega-lite": "^2.0.0-alpha.6",
+    "typescript": "^2.3.2",
+    "vega": "^3.0.0-beta.30",
+    "vega-lite": "^2.0.0-beta.1",
     "yargs": "^7.0.1"
   }
 }

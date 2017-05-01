@@ -5,8 +5,11 @@ import * as stream from "stream";
 import * as fs from "fs";
 import {ranking} from "./ranking";
 import {constraints} from "./constraints";
-import {assert, eq, not, or, iteFromDictFlipKeyValue} from "./helpers";
+import {assert, eq, not, or, iteFromDictFlipKeyValue, capitalizeFirstLetter} from "./helpers";
 import { FIELDS, QUERIES, Fields, Query } from './queries';
+import {PRIMITIVE_MARKS} from 'vega-lite/src/mark';
+import {CHANNELS} from 'vega-lite/src/channel';
+import {AGGREGATE_OPS}  from 'vega-lite/src/aggregate';
 
 // parse args
 const argv = yargs.argv;
@@ -26,19 +29,20 @@ StringType FloatType IntegerType DateType BooleanType
 ; encoding related types
 
 (declare-datatypes () ((Marktype 
-PointMark BarMark LineMark AreaMark TextMark TickMark RuleMark RectMark
+${PRIMITIVE_MARKS.map(mark => capitalizeFirstLetter(mark) + 'Mark').join(' ')}
 )))
 
 (declare-datatypes () ((Channel 
-X Y Color Size Shape Text Detail Opacity Row Column 
+${CHANNELS.map(channel => capitalizeFirstLetter(channel) + 'Channel').join(' ')}
 )))
 
 (declare-datatypes () ((EncodingType 
 Quantitative Ordinal Nominal
 )))
 
-(declare-datatypes () ((AggFunc 
-None Count Sum Mean Median Min Max
+(declare-datatypes () ((AggFunc
+; TODO: add 'Aggregate' postfix
+None ${AGGREGATE_OPS.map(agg => capitalizeFirstLetter(agg)).join(' ')}
 )))
 
 (declare-datatypes () ((Scale 
@@ -57,7 +61,7 @@ const nullEnc = `
 const countField = `
 (declare-const countField Field)
 ${assert(eq("(name countField)", '"*"'))}
-${assert(eq("(type countField)", "Integer"))}
+${assert(eq("(type countField)", "IntegerType"))}
 `
 
 const markDeclaration = `
@@ -72,12 +76,12 @@ function addGetXGetYEnc(encs){
 
   let dim = "X";
   const getXEncFunc = `(define-fun get${dim}Enc () Encoding
-           ${iteFromDictFlipKeyValue(dim, getXEncDict, "nullEnc")}
+           ${iteFromDictFlipKeyValue(dim + "Channel", getXEncDict, "nullEnc")}
         )`;
 
   dim = "Y";
   const getYEncFunc = `(define-fun get${dim}Enc () Encoding
-           ${iteFromDictFlipKeyValue(dim, getXEncDict, "nullEnc")}
+           ${iteFromDictFlipKeyValue(dim + "Channel", getXEncDict, "nullEnc")}
         )`;
 
   return getXEncFunc + '\n' + getYEncFunc;
@@ -138,10 +142,6 @@ function callZ3(program: string, callback: (output: string) => void) {
   stdinStream.pipe(child.stdin);
 }
 
-function capitalizeFirstLetter(string: string) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
-}
-
 function buildProgram(fields: Fields, query: Query, produceUnsatCore: boolean) {
   let program = "";
   
@@ -188,7 +188,7 @@ function buildProgram(fields: Fields, query: Query, produceUnsatCore: boolean) {
         program += assert(eq(`(type ${enc})`, `${capitalizeFirstLetter(e.type)}`));
       }
       if (e.channel) {
-        program += assert(eq(`(channel ${enc})`, `${capitalizeFirstLetter(e.channel)}`));
+        program += assert(eq(`(channel ${enc})`, `${capitalizeFirstLetter(e.channel)}Channel`));
       }
       if (e.aggregate) {
         program += assert(eq(`(agg ${enc})`, `${capitalizeFirstLetter(e.aggregate)}`));
@@ -295,9 +295,9 @@ function parse(stdout) {
     }
 
     (line.replace as any)(
-      // ((e0 (mk-enc     X (mk-field    "str1"     String   3) Ordinal false   Min (mk-scale   true   false))))
-      //                  $1               $2         $3    $4      $5    $6    $7               $8     $9
-      /\(\(e\d* \(mk-enc (\w+) \(mk-field "(\w+|\*)" (\w+) (\d+)\) (\w+) (\w+) (\w+) \(mk-scale (\w+) (\w+)\)\)\)\)/gi,
+      // ((e0 (mk-enc     XChannel (mk-field    "str1"     String   3) Ordinal false   Min (mk-scale   true   false))))
+      //                  $1                      $2         $3    $4      $5    $6    $7               $8     $9
+      /\(\(e\d* \(mk-enc (\w+)Channel \(mk-field "(\w+|\*)" (\w+) (\d+)\) (\w+) (\w+) (\w+) \(mk-scale (\w+) (\w+)\)\)\)\)/gi,
       (_, $1, $2, $3, $4, $5, $6, $7, $8, $9) => {
         const enc: any = {
           field: $2,
