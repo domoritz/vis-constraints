@@ -14,12 +14,12 @@
     "postrun": "cat vl.json && vl2png vl.json > vl.png && open vl.png"
   },
   "dependencies": {
-    "@types/node": "^7.0.5",
-    "compassql": "^0.11.0",
-    "ts-node": "^2.1.0",
-    "typescript": "^2.3.2",
-    "vega": "^3.0.0-beta.30",
-    "vega-lite": "^2.0.0-beta.1",
-    "yargs": "^7.0.1"
+    "@types/node": "^7.0.22",
+    "compassql": "^0.12.1",
+    "ts-node": "^3.0.4",
+    "typescript": "^2.3.4",
+    "vega": "^3.0.0-beta.32",
+    "vega-lite": "^2.0.0-beta.3",
+    "yargs": "^8.0.1"
   }
 }
