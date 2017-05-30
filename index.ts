@@ -7,9 +7,9 @@ import {ranking} from "./ranking";
 import {constraints} from "./constraints";
 import {assert, eq, not, or, iteFromDictFlipKeyValue, capitalizeFirstLetter} from "./helpers";
 import { FIELDS, QUERIES, Fields, Query } from './queries';
-import {PRIMITIVE_MARKS} from 'vega-lite/src/mark';
-import {CHANNELS} from 'vega-lite/src/channel';
-import {AGGREGATE_OPS}  from 'vega-lite/src/aggregate';
+import {PRIMITIVE_MARKS} from 'vega-lite/build/src/mark';
+import {CHANNELS} from 'vega-lite/build/src/channel';
+import {AGGREGATE_OPS}  from 'vega-lite/build/src/aggregate';
 
 // parse args
 const argv = yargs.argv;
