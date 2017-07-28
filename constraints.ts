@@ -64,7 +64,7 @@ export function constraints(encs: string[], fields: string[]) {
     // can only bin quantitative
     pushHard(implies(`(binned ${e})`, eq(`(type ${e})`, "Quantitative")));
 
-    // no not use scale zero with binned
+    // do not use scale zero with binned
     pushHard(implies(`(binned ${e})`, not(`(zero (scale ${e}))`)));
 
     // do not use scale zero with dimension
