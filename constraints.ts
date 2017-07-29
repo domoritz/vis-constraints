@@ -94,7 +94,7 @@ export function constraints(encs: string[], fields: string[]) {
     // size or text require measure
     pushHard(implies(or(channel(e, "size"), channel(e, "text")), isMeasure(e)));
 
-    // categorical channel should not have too high cardinality
+    // categorical color channel should not have too high cardinality
     pushHard(implies(and(channel(e, "color"), eq(`(type ${e})`, "Nominal")), `(<= (cardinality (field ${e})) 20)`));
 
     // shape channel should not have too high cardinality
